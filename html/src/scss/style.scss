@@ -1,0 +1,38 @@
+$main-color: #fafafa;
+
+body{
+	font-family: 'Lato';
+	background-color: #333;
+	color: $main-color;
+}
+
+// article:not(#frontpage){
+// 	width: 90%;
+// 	border: solid 5px black;
+// 	border-radius: 10px;
+
+// 	background-color: #666;
+
+// }
+
+article#frontpage{
+	width: 90%;
+	margin: auto;
+	margin-top: 10%;
+
+	h1{
+		font-size: xx-large;
+	}
+
+	p{
+		text-indent: 10px;
+		margin: 0;
+		margin-top: 0.5rem;
+	}
+}
+
+a {
+	color: darken($main-color, 25%);
+	text-decoration: none;
+	border-bottom: 2px solid darken($main-color, 50%);
+}

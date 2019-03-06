@@ -1,0 +1,25 @@
+{
+	"links": {
+		"Fun": {
+			"YouTube": "https://youtube.com/feed/subscriptions",
+			"Reddit": "https://reddit.com",
+			"Imgur": "https://imgur.com"
+		},
+		"Studia": {
+			"Materiały": "https://url.draganczuk.tk/materialy",
+			"Egzaminy": "http://25infsp.tk/egzaminy.php",
+			"Studnet": "https://webapps.uz.zgora.pl/studnet/"
+		},
+		"Dev": {
+			"localhost:8000": "http://localhost:8000",
+			"Github": "https://github.com/",
+			"D&G GitLab": "https://gitlab.com/devandgamesuz/",
+			"MDN": "https://developer.mozilla.org/en-US/"
+		},
+		"Linux": {
+			"/r/Linux": "https://reddit.com/r/unixporn",
+			"sed": "http://www.grymoire.com/Unix/Sed.html",
+			"Distrowatch": "https:distrowatch.com"
+		}
+	}
+}

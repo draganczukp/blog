@@ -1,0 +1,15 @@
+#!/bin/zsh
+
+# This script will copy all the files with scp to a remote server, then use ssh to run a build script on the server
+
+remoteuser="killermenpl"
+remoteaddress="draganczuk.tk"
+remotepath="/srv/blog/"
+pushd html > /dev/null
+# Which files need to be copied
+files=(posts src all.html build config.json favicon.ico index.html list.html package.json tsconfig.json)
+
+scp -r $files[@] $remoteuser@$remoteaddress:$remotepath
+ssh $remoteuser@$remoteaddress "cd $remotepath && ./build $remotepath"
+
+popd > /dev/null

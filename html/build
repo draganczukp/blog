@@ -1,0 +1,5 @@
+#!/bin/zsh
+
+pushd $(dirname $0)
+yarn run build
+popd
