@@ -4,15 +4,15 @@ body {
   color: #fafafa;
 }
 
-article#frontpage {
+article {
   width: 90%;
   margin: auto;
   margin-top: 10%;
 }
-article#frontpage h1 {
+article h1 {
   font-size: xx-large;
 }
-article#frontpage p {
+article p {
   text-indent: 10px;
   margin: 0;
   margin-top: 0.5rem;
