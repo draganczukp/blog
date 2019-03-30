@@ -9,102 +9,300 @@
 	<body>
 		<h1>All posts</h1>
 		<ul>
- <article><h2>About this blog</h2><h3>Who are you?</h3>
-<p>My name is Przemek Dragańczuk. I live in Poland and I'm currently studying IT at Uniwersytet Zielonogórski.</p>
-<p>I always liked computers, so naturally I went to an IT technikum (a specialised High School where you actually learn how to do something useful) in my home city, where I discovered just how great Linux is.
-After a year from when I first learned how to use it, I installed Ubuntu on my PC, but it was so slow I decided to use a different distro. I randomly chose Manjaro and accidentally downloaded the i3 edition. I instantly fell in love with it, since on Windows I was already using as many keyboard shortcuts as possible.</p>
+ <article><h2>Get comfortable in (neo)mutt</h2><h3>What is mutt and neomutt?</h3>
+<p>Mutt is a terminal mail client. Neomutt is a fork (or a collection of patches, to be more exact) of mutt with some added features. For the rest of the post I will be talking only about neomutt, but I might refer to it as "mutt".</p>
+<h3>Why not use something like Thunderbird</h3>
+<p>I've used Thunderbird, as well as many other clients and web UIs in the past. While most of them do what they're supposed to do, a lot of them have issues I can't live with.</p>
+<p>For example, web based interfaces, like Gmail, require a browser and use so much unnecessary JavaScript that older devices, or even new cheap devices struggle to run them. Some desktop clients, like Geary don't allow you to resize sidebars freely. It might not be a problem on large screens, but on small devices sidebars can take up a significant amount of space. On my old 10" laptop about 40% of the screen was taken just by two left sidebars, that I couldn't shrink anymore.</p>
 <p>
-A couple months later I got bored of Manjaro and how it holds your hand with everything, so I decided to try installing Arch. The first time I did it I broke pretty much everything I could have broken during installation. The second time went better, but it still wouldn't work. After about 5th attempt I had a working system with i3 installed.
+Mutt has no such problems. It's written in C, so it's fast and barely uses any RAM. Almost all of the screen is dedicated to showing mail subjects, and opening an email displays it in full screen.
+</p>
+<h3>Where to get it?</h3>
+<p>
+Neomutt is present in most distributions' package repositories. It's often packaged as "mutt", instead of "neomutt", so just keep that in mind. You can also build it from source, available on <a href="https://github.com/neomutt/neomutt">GitHub</a>.
+</p>
+<h3>My setup</h3>
+<p>
+While it is possible to use mutt for everything, from getting your email with IMAP to sending it with SMTP, most people (including me) use mutt just to read mail and keep it locally with something like OfflineIMAP and send messages with MSMTP or similar. The reason for that is simple: configuring mutt to work with multiple accounts, on multiple servers is a pain in the ass and there is barely any tutorials online. This approach also has the benefit of having all your mail available even
+if you don't have Internet connection or the server you used goes down.
 </p>
 <p>
-During the installing I learnt a lot about how Linux works and I finally stopped being afraid of the command line and embraced the shell. Since then I learned vim, then I switched to neovim and I didn't miss Windows and IDEs at all.
+I personally have three accounts, all on different servers: my personal Gmail account, an account assigned to me by my college, and my college group's mail.
 </p>
 <p>
- Then I went to college and in order to make notes during lecture, a lot of which were Math, I learnt basic Latex.
+Here's how I have things configured on all my machines:
+<ol>
+	<li>A script runs every minute, launching OfflineIMAP</li>
+	<li>OfflineIMAP checks for and downloads new mail</li>
+	<li>If there is any new unread mail I get a desktop notification</li>
+	<li>I read the mail in muttt, view attachments in different programs depending on file type and open links in a browser</li>
+	<li>Writing new emails is done in mutt, but the actual sending is done by MSMTP</li>
+</ol>
 </p>
 <p>
-If you're already bored, then I want to warn you, that I'm bad at writing and getting straight to the point, which in this case is: I'm trying to live as bloat free as possible, while not sacrificing anything I like.
+If you think it sounds complicated, don't worry. It's relatively simple, as long as you know how to edit text files and read instructions.
 </p>
-
-<h3>What is this blog?</h3>
-
+<h3>Setting everything up</h3>
+<h4>Step 0: Getting your system ready</h4>
 <p>
-In this blog I'm talking about a lot of things, usually Linux and Linux software. I sometimes talk about programming or make tutorials on setting up some of the software I use. I'm not writing for little kids, so expect to see some swearing, especially when I'm complaining about something
+Install mutt (or neomutt if your distro treats them separately), OfflineIMAP and MSMTP. I also recommend using a password manager, especially if you plan on keeping your configuration files on a public server, like GitHub.
 </p>
 <p>
-This blog was written entirely in neovim on an Arch Linux PC (by the way I use Arch). It's also still work in progress, which is why some things don't look as good as they can, like the headings, which are too small or no visible border between posts and rest of the site.
+On my system I have a script called "getpass" LastPass CLI, but it might as well just be a bunch of if/then statements. The important thing is that if I ever decided to use something other than LastPass (which I'm currently thinking about), I don't have to look through multiple config files to change the command. I highly recommend making a script like that. Here is the content of "getpass"
+<pre><code>
+#!/bin/sh
+lpass show --password $1
+</code></pre>
+Simple, yet does exactly what it needs to
 </p>
-
-<h3>What do I define is "bloat"?</h3>
+<h4>Step 1: Configure OfflineIMAP to receive mail</h4>
 <p>
-My definition of bloat might be different from what others think, but it's really simple:
+Before we go into configuring OfflineIMAP, you have to understand some of the terminology used:
 <ul>
-	<li>Things that use more resources than they should, for example: all the electron apps, Google Chrome, Windows</li>
-	<li>Things that have a fuck ton of features nobody asked for or needs. Just look at Instagram: What used to be a simple photo sharing app now has all these features, like stories or Instagram TV that 90% of users just ignore</li>
-	<li>Anything that spies on its users, including Microsoft, Google, Facebook etc.</li>
-	<li>All those websites that take 10 minutes to load because they have to download 100MB worth of frameworks and trackers before they can show you the content</li>
+	<li id="section">Section: part of the config file that's responsible for one thing</li>
+	<li id="account">Account: an email account. They consist of a name, and two repositories: local and remote</li>
+	<li id="repo">Repository: a place somewhere that stores all your emails. Can be remote and local</li>
+	<li id="local-repo">Local repository: a folder, usually on your computer that mutt will read from</li>
+	<li id="remote-repo">Remote repository: a remote IMAP server.</li>
 </ul>
 </p>
-
-<h3>What isn't bloat then?</h3>
 <p>
-	That big list might make you feel like there is no software I don't consider bloat, but that's not correct. There is a lot of software that no one would consider bloated, for example:
-	<ul>
-		<li>Linux: The kernel is huge and contains a lot of stuff most people don't use, but it's relatively easy to compile your own kernel without all that stuff. Even if you leave them, about 40MB for all the drivers I would ever need and a lot of other useful things is not that much</li>
-		<li>(neo)Vim and CLI apps in general are fast, small and almost all the features are useful, even if not everyone knows about them</li>
-		<li>Hundreds or thousands of apps that do just what they're supposed to do, like Mozilla Firefox, Geary, the entire Unix tool suite etc.</li>
-	</ul>
+Now we should be ready to start. In your editor of choice open the file <code>~/.offlineimaprc</code>. If you didn't use OfflineIMAP before, you most likely don't have that file. In that case just create it.
 </p>
-
-<h3>Bloat that I can't cut out of my life</h3>
 <p>
-Despite my hatred towards bloat, I still use a lot of bloated software. I use:
+Now put the following snippet in it:
+<pre><code>
+[general]
+accounts = account1, account2
+starttls = yes
+ssl = yes
+pythonfile = ~/.offlineimap.py
+</code></pre>
+Let me explain what each of these lines does:</br>
+<code>[general]</code> starts a new section called general. You put here options that aren't specific to any acocunt.<br>
+<code>accounts = account1, account2</code>: A list of all the accounts you want OfflineIMAP to manage by default. I recommend putting all your accounts here, so that they're always up to date</br>
+<code>starttls</code> and <code>ssl</code> tell OfflineIMAP to use SSL when connecting to the servers
+<code>pythonfile</code> is a python script OfflineIMAP will use to call "getpass". The way this config file works, it's impossible to run external commands directly, so that's the best we can do. Here is what that <code>~/.offlineimap.py</code> file look like on my machine:
+<pre><code>
+import os.path
+import subprocess
+def mailpass(acct):
+  args = ["/home/user/bin/getpass", acct]
+  try:
+	return subprocess.check_output(args).strip().decode('UTF-8')
+  except subprocess.CalledProcessError:
+	  return ""
+</code></pre>
+I'm not a python expert and I just copied it from a tutorial and adapted it just a bit.
+</p>
+<p>
+Now we have to configure an email account.
+
+A typical account definition looks like this:
+<pre><code>
+[Account {account-name}]
+localrepository = {account-name}-local
+remoterepository = {account-name}-remote
+
+[Repository {account-name}-remote]
+auth_mechanisms = LOGIN
+type = IMAP
+remoteuser = {username}
+remotepasseval = mailpass("{account-name}")
+remotehost = {imap-server}
+remoteport = {imap-server-port}
+sslcacertfile = /etc/ssl/certs/ca-certificates.crt
+ssl_version=tls1_2
+createfolders = False
+
+[Repository {account-name}-local]
+type = Maildir
+localfolders = ~/.mail/{account-name}
+</code></pre>
+
+Obviously replace {account-name}, {username} etc. with proper values.
+A quick rundown of these lines:
+<code>[Account {account-name}]</code> means that whatever is in this section talks about account {account-name}.<br>
+<code>localrepository</code> and <code>remoterepository</code> decide which section use for local and remote repository. They don't have to be named that way, you can name them however you want, as long as you know what is what.<br>
+<code>[Repository {account-name}-remote]</code> start a section describing the remote repository<br>
+<code>auth_mechanisms</code> How do you authenticate with the server? 90% of the time <code>LOGIN</code> will work just fine.<br>
+<code>type</code> What type of server is that? For remote put either "Gmail" for Gmail, or "IMAP" for everything else.<br>
+<code>remoteuser</code> Your username. Usually it's the full email address (like example@gmail.com)<br>
+<code>remotepasseval</code> sets the password for the server using that script from earlier.<br>
+<code>remotehost</code> URL of the server. Usually something like mail.example.com or imap.example.com<br>
+<code>remoteport</code> What port does the server listen on? Usually 993, sometimes 143.<br>
+<code>sslcacertfile</code> Certificate Authority cert file. Needed to talk to remote servers<br>
+<code>ssl_version</code> An upstream bug causes some servers to be inaccessible with newer versions of SSL. This is a temporary workaround until that's fixed.<br>
+<code>createfolders</code> If a folder exists locally, but not on the server, should it be created? I recommend leaving it False, as it can cause some problems with some servers<br>
+<code>[Repository {account-name}-local]</code> Defines a new local repository<br>
+<code>type</code> What type of mailbox is it? Defines how the mail is stored on disk. Mutt works best with Maildir, so we will use that.<br>
+<code>localfolders</code> Where to store the mail
+</p>
+<p>
+And that's it. Repeat it for each account you want to use. After that, run <code>offlineimap</code> from terminal to make sure everything works and to download mail to your disk. If everything works, move on to configuring MSMTP
+</p>
+<h4>Step 2: Setting MSMTP for sending mail</h4>
+<p>
+Config for MSMTP is located at <code>~/.msmtprc</code>. Just like with OfflineIMAP, it's also split into sections, but they're a bit harder to differentiate.
+</p>
+<p>
+First, we have to add a <code>defaults</code> section:
+<pre><code>
+defaults
+auth on
+tls on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile /var/log/msmtpc.log
+</code></pre>
+<code>defaults</code> starts the defaults section<br>
+<code>auth on</code> Use authentication<br>
+<code>tls on</code> Use TLS for security<br>
+<code>tls_trust_file</code> Who can we trus?<br>
+<code>logfile</code> Where to log errors?<br>
+</p>
+<p>
+Now we just need to add some accounts:
+<pre><code>
+account {account-name}
+host {server-url}
+port {server-port}
+from {from}
+user {user}
+passwordeval "/home/user/bin/getpass {account}"
+</code></pre>
+<code>account {account-name}</code> starts an account section<br>
+<code>host</code> Server URL<br>
+<code>from</code> What will the other person see in the "From: " field?<br>
+<code>user</code> Your username. Usually full email address<br>
+<code>passwordeval</code> How to get the password<br>
+And that's it for MSMTP. Test it by sending yourself an email with <code>msmtp --account={account-name} your@email.address</code>. Type a message and press Ctrl+D to send it.
+</p>
+<h4>Step 3: Configure mutt</h4>
+<p>
+Now comes the time to make it all work together. As much as I love mutt, the config syntax sucks. It's kind of like if you took Vimscript used to configure Vim, and took all the good things out. But, enough about that, let's get to work.
+</p>
+<p>
+First thing you have to do is make a new folder <code>~/.config/mutt</code>. Every file I talk from now on is located there, unless specified otherwise. You will need two files, plus a separate file for each account you want to use. First file is called <code>muttrc</code>, second is <code>mailboxes.muttrc</code> and the rest are <code>{account-name}.muttrc</code>. The only file that <strong>must</strong> be named the way I said is <code>muttrc</code>, every other file can have
+a different name.
+</p>
+<p>
+<code>muttrc</code> is your main config file. Here you will put all configuration options and keybindings. I'll share my config file later, but for now the only line that absolutely has to be there is
+<pre><code>
+source mailboxes.muttrc
+</code></pre>
+It reads the content of <code>mailboxes.muttrc</code>, which contains information about your accounts.
+</p>
+<p>
+Let's take a look at what is inside <code>mailboxes.muttrc</code>:
+<pre><code>
+macro index,pager &lt;F1&gt; '&lt;sync-mailbox&gt;&lt;enter-command&gt;source ~/.config/mutt/account1.muttrc&lt;enter&gt;&lt;change-folder&gt;!&lt;enter&gt;;&lt;check-stats&gt;'
+macro index,pager &lt;F2&gt; '&lt;sync-mailbox&gt;&lt;enter-command&gt;source ~/.config/mutt/account2.muttrc&lt;enter&gt;&lt;change-folder&gt;!&lt;enter&gt;;&lt;check-stats&gt;'
+
+source ~/.config/mutt/accoun1.muttrc
+</code></pre>
+Although it seems to be some random symbols, they all do something. The firs two lines create new key bindings, F1 and F2. The really important part is <code>source ~/.config/mutt/account1.muttrc</code>. It means that whenever you press F1, mutt will read this file and as a result change to a different account. This let's you switch between accounts with ease by just pressing a single key. Modify these bindings and add new ones as needed until you have a binding for each
+account you want to use.
+</p>
+<p>
+The last line in this file simply sets an account to open by default when you start mutt. Without it, you would see an error and you would have to manually select an account
+</p>
+<p>
+The only thing left is the {account-name}.muttrc files.
+<pre><code>
+set realname = "My Real Name"
+set from = "mail@example.com"
+set sendmail = "/usr/bin/msmtp -a {account-name}"
+set folder = "~/.mail/{account-name}/"
+set spoolfile = "+INBOX"
+
+alias me "My Real Name" "mail@example.com"
+
+set mbox_type = Maildir
+set ssl_starttls = yes
+set ssl_force_tls = yes
+
+unmailboxes *
+
+</code></pre>
+I'm gonna be honest with you here. I'm not 100% sure what some of these options do, or why are they here if they're already set somewhere else, but things break without them.<br>
+The important lines are:
 <ul>
-	<li>gmail - only because I don't have the time to set up an email server on my VPS</li>
-	<li>Windows - A lot of software I have to use in cullege (like 3DSMax) works only on Windows. Also, Linux is still not the perfect platform for gaming, at least not yet</li>
-	<li>Facebook and messenger - Simply for communication with my classmates. If you say that we should use something else, you try to tell about 30 student that they should stop using the communicator they used for years and they use to talk with almost everyone and use something maybe one of them heard about before. I'll wait here and laugh at you with them</li>
-	<li>Spotify - I haven't found any other way to listen to music everywhere without problems that's just as cheap and, what's more important, legal</li>
+	<li><code>set sendmail</code> This sets the command used to send mail, in our case it's MSMTP with a specific account</li>
+	<li><code>set folder</code> Where did OfflineIMAP download the mail?</li>
+	<li><code>set mbox_type = Maildir</code> We use Maildir here and in OfflineIMAP</li>
 </ul>
-</p></article> <article><h2>How I make this blog</h2><h3>The blog script</h3>
-<p>
-I created a shell script that handles most of the things related to blogging, like creating a post and publishing it. It does not use a database (unless you count plain text files) and employs a lot of sed bullshitery to make it all work.
 </p>
 <p>
-The whole script is available on my GitHub <a href="https://github.com/draganczukp/blog">here</a>. Just set the variables to suit your needs
+And that's it. You have successfully configured OfflineIMAP, MSMTP and mutt to work together in order to do one job: deliver your email to you. If you think this was too much work, there are some automated config generators that will do most of the work for you, but where is the fun in that?
 </p>
+<h4>Step 4 (Optional) get a notification when new mail arrives</h4>
+<p>
+I said in the beginning that I have a script running every minute downloading and notifying me of any new mail. If you only want synchronisation to happen automatically, OfflineIMAP can be run as a daemon. The downside is that it needs some extra configuration and you won't get any notifications.
+</p>
+<p>
+The script I use is:
+<pre><code>
+#!/bin/zsh
 
-<h3>How it works</h3>
-<p>Running the script by itself shows a menu with a few options, which can be passed as arguments instead.</p>
-<p>The option "c" asks for a post title, then creates an empty draft and opens it in default editor, which for me is nvim. The draft is just a HTML file, but without the whole html skeleton (things like doctype, head or opening/closing body tags).</p>
-<p>Once you're done writing the post, you are asked if you want the post to be marked for publishing. This just copies the draft to another
-folder, which helps keep ready posts separate from posts that still need some work.</p>
-<p>Posts can be later edited using option "u" (for update), which lists all posts to choose from with FZF.</p>
-<p>You can also use "d" to permanently delete a post. It is currently not possible to unpublish a post once it has been published from the script. You have to delete it from "published" folder manually.</p>
-<p>Once you have a couple of posts ready, you can render them with "r". This does three things:
-<ul>
-	<li>create finished .html files for each published post (like this one) by loading a template and replacing specific things with a post</li>
-	<li>Create a list of links to all the rendered posts</li>
-	<li>Create a big page with every single post one after another</li>
-</ul>
-I might also add RSS to the mix, but I don't know if anyone will use it.
-</p>
-<p>
-The last step is deploying the blog with "u" (or running <code>./deploy</code> directly). For me it copies specific files to my VPS using scp, then runs a build script with ssh, but you can chage it to do whatever you want.
-</p>
-<p>
-That's it. All you have to do is set your server to show your blog and you're done.
-</p>
+# Download new mail
+offlineimap
 
-<h3>OMG you copied Luke Smith's lb!!!11!!1!one!oneone!</h3>
-<p>
-Yes, I did base my script on his. I saw what he did and I thought to myself: "I can do that too". So I did. Mine isn't as compact as his and depends on FZF, but it has some extra features, like being compatible with every web server, not just Apache.
+# Loop through every account in ~/.mail
+for account in $(ls ~/.mail); do
+	# Find all unread mail whose file is newer that the last time this script was run and count them
+	newcount=$(find ~/.mail/$account/INBOX/new/ -type f -newer ~/.config/mutt/.mailsynclast 2> /dev/null | wc -l)
+	# Are there any new unread mail?
+	if [ "$newcount" -gt "0" ]; then
+		# Send a notification
+		notify-send "New Mail" "$newcount new mail in mailbox $account" &
+	fi
+done
+
+# Update access time of a marker file
+touch ~/.config/mutt/.mailsynclast
+</code></pre>
+It requires a notification daemon running and a notify-send command.
 </p>
 <p>
-Besides, I treat Luke as a mentor who taught me a lot of things, like Vim text objects, sed and Latex. I use a lot of snippets copy-pasted from his dotfiles into mine and they are great little things I would never have thought about
+I have it running in a <code>while true; do</code> loop located in my .xinitrc with 30 second sleep after each run.
 </p>
+<h3>My muttrc</h3>
 <p>
-If Luke doesn't like the fact that I practically copied his script, he can contact me through multiple means. Github issues would be the simples way.
-</p></article>
-		</ul>
+
+I promised to show my muttrc, but before I do, I just want to warn you that it's a mess of copy-pasted snippets, half of which I'm not sure what they do. I'll add comments to things that I consider useful
+
+<pre><code>
+
+# Read account information
+source mailboxes.muttrc
+
+bind index,pager g noop
+bind index \Cf noop
+set sleep_time = 0
+# Sort by date in reverse order. This makes new mail appear on the top instead of bottom
+set sort = 'reverse-date'
+# Use neovim to write new mail
+set editor = nvim
+#set copy = no
+set timeout = "5"
+set mail_check = "10"
+# This is a usefull little thing. It's what decides which program opens which attachment.
+# currently it's the default file from rtv (reddit terminal viewer)
+set mailcap_path = ~/.config/mutt/mailcap
+# set mailcap_path = ~/.mailcap
+set date_format="%d/%m/%y %I:%M"
+set index_format="%2C %zs %?X?A& ? %D %-15.15F %s (%-4.4c)"
+set markers = no
+set mark_old = no
+set mime_forward = yes
+set smtp_authenticators = 'gssapi:login'
+set wait_key = no
+# Automatically view html mail with w3m
+auto_view text/html
+alternative_order text/plain text/enriched text/html
+set rfc2047_parameters = yes
+
+# Scan the mail for links and let me open them with my browser
+macro index,pager 		</ul>
 	</body>
 </html>
