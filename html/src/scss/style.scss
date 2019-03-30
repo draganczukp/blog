@@ -8,23 +8,26 @@ body{
 
 // article:not(#frontpage){
 // 	width: 90%;
-// 	border: solid 5px black;
-// 	border-radius: 10px;
-
-// 	background-color: #666;
 
 // }
-
-article{
-	width: 90%;
-	margin: auto;
-	margin-top: 10%;
 
 	h1{
 		font-size: xx-large;
 	}
 
+article{
+	width: 90%;
+	// border: solid 5px black;
+	border-radius: 10px;
+	box-shadow: 0 0 20px 5px darken(#333, 10%);
+
+	margin: auto;
+	margin-top: 10%;
+	padding: 15px;
+
+
 	p{
+		text-align: justify;
 		text-indent: 10px;
 		margin: 0;
 		margin-top: 0.5rem;
