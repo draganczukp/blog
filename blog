@@ -8,13 +8,6 @@
 	# 1: Tried to add a new post with an existing name
 	# 2: Created post is empty
 
-
-# Information about website
-name="Przemek Dragańczuk"
-# Base url, prefered over just using "/" since it may be in a subfolder
-url="https://draganczuk.tk/"
-# Git remote to push to
-
 # Folder with .html files
 html="html"
 # Folder with published but unrendered posts
@@ -54,8 +47,8 @@ function new-post(){
 	[ $(file $post | grep empty -q) ] && echo "File is empty. Did you forget to save?" && exit 2;
 	echo $title >> $titles/$escaped.html.title
 
-	read -q "?Do you want to mark this blog for publishing? [y/n]" pub
-	[[ "$pub" -eq "y" || "$pub" -eq "Y" ]] && cp $post $published/$escaped.html
+	mark-for-publishing $post $published/escaped.html
+
 	exit 0;
 }
 
@@ -118,10 +111,14 @@ function update-post(){
 	# echo $post
 	[ -f $post ] && $EDITOR $post
 
-	read -q "?Do you want to mark this blog for publishing? [y/n]" pub
-	[[ "$pub" -eq "y" || "$pub" -eq "Y" ]] && yes|cp -f $post $published/$escaped.html && \
-	echo "Remember to render your posts again or your changes will have no effect"
+	mark-for-publishing $post $published/$escaped.html
 
+}
+
+function mark-for-publishing(){
+	read -q "?Do you want to mark this blog for publishing? [y/n]" pub
+	[[ "$pub" -eq "y" || "$pub" -eq "Y" ]] && cat $1 > $1 && \
+	echo "\nRemember to render your posts again or your changes will have no effect"
 }
 
 function delete-post(){
@@ -142,10 +139,12 @@ u	Update an existing post
 r	Render all posts
 p	Deploy blog (requires a deploy script)
 d	Delete a post
+
 """
-		read -k action
+	read -k action
 fi
 echo ""
+pushd $(dirname $0) > /dev/null 2>&1
 case $action in
 	("c")
 		new-post;;
@@ -161,3 +160,5 @@ case $action in
 	(*)
 		echo "Zła akcja";;
 esac
+
+popd > /dev/null 2>&1
