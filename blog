@@ -84,7 +84,7 @@ function render-all(){
 	local list=""
 	for post in $(/bin/ls -t $published/*.html); do
 		local bn=$(basename $post)
-		local p="<article><h2>$(cat $titles/$bn.title)</h2>$(cat $post)</article>"
+		local p="<article><h2>$(cat $titles/$bn.title)</h2>$(cat $post | sed 's/\\c/\\\\c/g')</article>"
 		list="$list $p"
 	done
 	d=$(mktemp)
@@ -108,6 +108,9 @@ function update-post(){
 	post=$(/bin/ls $titles/*.html.title | sed -r "s/$titles\/(.*).html.title/\\1/" | fzf)
 
 	post=$drafts/$(basename $post .html.title).html
+
+	local escaped=$(basename post .html | sed "s/ /-/g")
+
 	# echo $post
 	[ -f $post ] && $EDITOR $post
 
