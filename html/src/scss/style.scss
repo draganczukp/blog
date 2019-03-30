@@ -4,6 +4,8 @@ body{
 	font-family: 'Lato';
 	background-color: #333;
 	color: $main-color;
+	padding: 0;
+	margin: 0;
 }
 
 // article:not(#frontpage){
@@ -11,9 +13,9 @@ body{
 
 // }
 
-	h1{
-		font-size: xx-large;
-	}
+h1{
+	font-size: xx-large;
+}
 
 article{
 	width: 90%;
@@ -24,6 +26,16 @@ article{
 	margin: auto;
 	margin-top: 10%;
 	padding: 15px;
+
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+	-ms-word-break: break-all;
+	word-break: break-word;
+
+	-ms-hyphens: auto;
+	-moz-hyphens: auto;
+	-webkit-hyphens: auto;
+	hyphens: auto;
 
 
 	p{
@@ -38,4 +50,48 @@ a {
 	color: darken($main-color, 25%);
 	text-decoration: none;
 	border-bottom: 2px solid darken($main-color, 50%);
+}
+
+code {
+	font: monospace;
+}
+
+:not(pre) > code {
+	border: solid 1px lighten(#333, 10%);
+	border-radius: 5px;
+	display: inline-block;
+	background-color: #444;
+	padding: 2px;
+	margin: 0;
+}
+
+pre {
+	border-radius: 5px;
+	overflow: auto;
+	background-color: #555;
+	width: 90%;
+	code {
+		margin: 15px;
+		margin-left: 25px;
+		display: block;
+	}
+}
+
+footer {
+	position: sticky;
+	bottom: 0;
+
+	width: 90%;
+	margin: auto;
+	margin-top: 10px;
+
+	background-color: #333;
+
+
+	// border: 1px solid darken(#333, 10%);
+
+	padding: 10px;
+
+	text-align: right;
+
 }

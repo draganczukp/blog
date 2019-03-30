@@ -1,0 +1,391 @@
+<h3>What is mutt and neomutt?</h3>
+<p>Mutt is a terminal mail client. Neomutt is a fork (or a collection of patches, to be more exact) of mutt with some added features. For the rest of the post I will be talking only about neomutt, but I might refer to it as "mutt".</p>
+<h3>Why not use something like Thunderbird</h3>
+<p>I've used Thunderbird, as well as many other clients and web UIs in the past. While most of them do what they're supposed to do, a lot of them have issues I can't live with.</p>
+<p>For example, web based interfaces, like Gmail, require a browser and use so much unnecessary JavaScript that older devices, or even new cheap devices struggle to run them. Some desktop clients, like Geary don't allow you to resize sidebars freely. It might not be a problem on large screens, but on small devices sidebars can take up a significant amount of space. On my old 10" laptop about 40% of the screen was taken just by two left sidebars, that I couldn't shrink anymore.</p>
+<p>
+Mutt has no such problems. It's written in C, so it's fast and barely uses any RAM. Almost all of the screen is dedicated to showing mail subjects, and opening an email displays it in full screen.
+</p>
+<h3>Where to get it?</h3>
+<p>
+Neomutt is present in most distributions' package repositories. It's often packaged as "mutt", instead of "neomutt", so just keep that in mind. You can also build it from source, available on <a href="https://github.com/neomutt/neomutt">GitHub</a>.
+</p>
+<h3>My setup</h3>
+<p>
+While it is possible to use mutt for everything, from getting your email with IMAP to sending it with SMTP, most people (including me) use mutt just to read mail and keep it locally with something like OfflineIMAP and send messages with MSMTP or similar. The reason for that is simple: configuring mutt to work with multiple accounts, on multiple servers is a pain in the ass and there is barely any tutorials online. This approach also has the benefit of having all your mail available even
+if you don't have Internet connection or the server you used goes down.
+</p>
+<p>
+I personally have three accounts, all on different servers: my personal Gmail account, an account assigned to me by my college, and my college group's mail.
+</p>
+<p>
+Here's how I have things configured on all my machines:
+<ol>
+	<li>A script runs every minute, launching OfflineIMAP</li>
+	<li>OfflineIMAP checks for and downloads new mail</li>
+	<li>If there is any new unread mail I get a desktop notification</li>
+	<li>I read the mail in muttt, view attachments in different programs depending on file type and open links in a browser</li>
+	<li>Writing new emails is done in mutt, but the actual sending is done by MSMTP</li>
+</ol>
+</p>
+<p>
+If you think it sounds complicated, don't worry. It's relatively simple, as long as you know how to edit text files and read instructions.
+</p>
+<h3>Setting everything up</h3>
+<h4>Step 0: Getting your system ready</h4>
+<p>
+Install mutt (or neomutt if your distro treats them separately), OfflineIMAP and MSMTP. I also recommend using a password manager, especially if you plan on keeping your configuration files on a public server, like GitHub.
+</p>
+<p>
+On my system I have a script called "getpass" LastPass CLI, but it might as well just be a bunch of if/then statements. The important thing is that if I ever decided to use something other than LastPass (which I'm currently thinking about), I don't have to look through multiple config files to change the command. I highly recommend making a script like that. Here is the content of "getpass"
+<pre><code>
+#!/bin/sh
+lpass show --password $1
+</code></pre>
+Simple, yet does exactly what it needs to
+</p>
+<h4>Step 1: Configure OfflineIMAP to receive mail</h4>
+<p>
+Before we go into configuring OfflineIMAP, you have to understand some of the terminology used:
+<ul>
+	<li id="section">Section: part of the config file that's responsible for one thing</li>
+	<li id="account">Account: an email account. They consist of a name, and two repositories: local and remote</li>
+	<li id="repo">Repository: a place somewhere that stores all your emails. Can be remote and local</li>
+	<li id="local-repo">Local repository: a folder, usually on your computer that mutt will read from</li>
+	<li id="remote-repo">Remote repository: a remote IMAP server.</li>
+</ul>
+</p>
+<p>
+Now we should be ready to start. In your editor of choice open the file <code>~/.offlineimaprc</code>. If you didn't use OfflineIMAP before, you most likely don't have that file. In that case just create it.
+</p>
+<p>
+Now put the following snippet in it:
+<pre><code>
+[general]
+accounts = account1, account2
+starttls = yes
+ssl = yes
+pythonfile = ~/.offlineimap.py
+</code></pre>
+Let me explain what each of these lines does:</br>
+<code>[general]</code> starts a new section called general. You put here options that aren't specific to any acocunt.<br>
+<code>accounts = account1, account2</code>: A list of all the accounts you want OfflineIMAP to manage by default. I recommend putting all your accounts here, so that they're always up to date</br>
+<code>starttls</code> and <code>ssl</code> tell OfflineIMAP to use SSL when connecting to the servers
+<code>pythonfile</code> is a python script OfflineIMAP will use to call "getpass". The way this config file works, it's impossible to run external commands directly, so that's the best we can do. Here is what that <code>~/.offlineimap.py</code> file look like on my machine:
+<pre><code>
+import os.path
+import subprocess
+def mailpass(acct):
+  args = ["/home/user/bin/getpass", acct]
+  try:
+	return subprocess.check_output(args).strip().decode('UTF-8')
+  except subprocess.CalledProcessError:
+	  return ""
+</code></pre>
+I'm not a python expert and I just copied it from a tutorial and adapted it just a bit.
+</p>
+<p>
+Now we have to configure an email account.
+
+A typical account definition looks like this:
+<pre><code>
+[Account {account-name}]
+localrepository = {account-name}-local
+remoterepository = {account-name}-remote
+
+[Repository {account-name}-remote]
+auth_mechanisms = LOGIN
+type = IMAP
+remoteuser = {username}
+remotepasseval = mailpass("{account-name}")
+remotehost = {imap-server}
+remoteport = {imap-server-port}
+sslcacertfile = /etc/ssl/certs/ca-certificates.crt
+ssl_version=tls1_2
+createfolders = False
+
+[Repository {account-name}-local]
+type = Maildir
+localfolders = ~/.mail/{account-name}
+</code></pre>
+
+Obviously replace {account-name}, {username} etc. with proper values.
+A quick rundown of these lines:
+<code>[Account {account-name}]</code> means that whatever is in this section talks about account {account-name}.<br>
+<code>localrepository</code> and <code>remoterepository</code> decide which section use for local and remote repository. They don't have to be named that way, you can name them however you want, as long as you know what is what.<br>
+<code>[Repository {account-name}-remote]</code> start a section describing the remote repository<br>
+<code>auth_mechanisms</code> How do you authenticate with the server? 90% of the time <code>LOGIN</code> will work just fine.<br>
+<code>type</code> What type of server is that? For remote put either "Gmail" for Gmail, or "IMAP" for everything else.<br>
+<code>remoteuser</code> Your username. Usually it's the full email address (like example@gmail.com)<br>
+<code>remotepasseval</code> sets the password for the server using that script from earlier.<br>
+<code>remotehost</code> URL of the server. Usually something like mail.example.com or imap.example.com<br>
+<code>remoteport</code> What port does the server listen on? Usually 993, sometimes 143.<br>
+<code>sslcacertfile</code> Certificate Authority cert file. Needed to talk to remote servers<br>
+<code>ssl_version</code> An upstream bug causes some servers to be inaccessible with newer versions of SSL. This is a temporary workaround until that's fixed.<br>
+<code>createfolders</code> If a folder exists locally, but not on the server, should it be created? I recommend leaving it False, as it can cause some problems with some servers<br>
+<code>[Repository {account-name}-local]</code> Defines a new local repository<br>
+<code>type</code> What type of mailbox is it? Defines how the mail is stored on disk. Mutt works best with Maildir, so we will use that.<br>
+<code>localfolders</code> Where to store the mail
+</p>
+<p>
+And that's it. Repeat it for each account you want to use. After that, run <code>offlineimap</code> from terminal to make sure everything works and to download mail to your disk. If everything works, move on to configuring MSMTP
+</p>
+<h4>Step 2: Setting MSMTP for sending mail</h4>
+<p>
+Config for MSMTP is located at <code>~/.msmtprc</code>. Just like with OfflineIMAP, it's also split into sections, but they're a bit harder to differentiate.
+</p>
+<p>
+First, we have to add a <code>defaults</code> section:
+<pre><code>
+defaults
+auth on
+tls on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile /var/log/msmtpc.log
+</code></pre>
+<code>defaults</code> starts the defaults section<br>
+<code>auth on</code> Use authentication<br>
+<code>tls on</code> Use TLS for security<br>
+<code>tls_trust_file</code> Who can we trus?<br>
+<code>logfile</code> Where to log errors?<br>
+</p>
+<p>
+Now we just need to add some accounts:
+<pre><code>
+account {account-name}
+host {server-url}
+port {server-port}
+from {from}
+user {user}
+passwordeval "/home/user/bin/getpass {account}"
+</code></pre>
+<code>account {account-name}</code> starts an account section<br>
+<code>host</code> Server URL<br>
+<code>from</code> What will the other person see in the "From: " field?<br>
+<code>user</code> Your username. Usually full email address<br>
+<code>passwordeval</code> How to get the password<br>
+And that's it for MSMTP. Test it by sending yourself an email with <code>msmtp --account={account-name} your@email.address</code>. Type a message and press Ctrl+D to send it.
+</p>
+<h4>Step 3: Configure mutt</h4>
+<p>
+Now comes the time to make it all work together. As much as I love mutt, the config syntax sucks. It's kind of like if you took Vimscript used to configure Vim, and took all the good things out. But, enough about that, let's get to work.
+</p>
+<p>
+First thing you have to do is make a new folder <code>~/.config/mutt</code>. Every file I talk from now on is located there, unless specified otherwise. You will need two files, plus a separate file for each account you want to use. First file is called <code>muttrc</code>, second is <code>mailboxes.muttrc</code> and the rest are <code>{account-name}.muttrc</code>. The only file that <strong>must</strong> be named the way I said is <code>muttrc</code>, every other file can have
+a different name.
+</p>
+<p>
+<code>muttrc</code> is your main config file. Here you will put all configuration options and keybindings. I'll share my config file later, but for now the only line that absolutely has to be there is
+<pre><code>
+source mailboxes.muttrc
+</code></pre>
+It reads the content of <code>mailboxes.muttrc</code>, which contains information about your accounts.
+</p>
+<p>
+Let's take a look at what is inside <code>mailboxes.muttrc</code>:
+<pre><code>
+macro index,pager &lt;F1&gt; '&lt;sync-mailbox&gt;&lt;enter-command&gt;source ~/.config/mutt/account1.muttrc&lt;enter&gt;&lt;change-folder&gt;!&lt;enter&gt;;&lt;check-stats&gt;'
+macro index,pager &lt;F2&gt; '&lt;sync-mailbox&gt;&lt;enter-command&gt;source ~/.config/mutt/account2.muttrc&lt;enter&gt;&lt;change-folder&gt;!&lt;enter&gt;;&lt;check-stats&gt;'
+
+source ~/.config/mutt/accoun1.muttrc
+</code></pre>
+Although it seems to be some random symbols, they all do something. The firs two lines create new key bindings, F1 and F2. The really important part is <code>source ~/.config/mutt/account1.muttrc</code>. It means that whenever you press F1, mutt will read this file and as a result change to a different account. This let's you switch between accounts with ease by just pressing a single key. Modify these bindings and add new ones as needed until you have a binding for each
+account you want to use.
+</p>
+<p>
+The last line in this file simply sets an account to open by default when you start mutt. Without it, you would see an error and you would have to manually select an account
+</p>
+<p>
+The only thing left is the {account-name}.muttrc files.
+<pre><code>
+set realname = "My Real Name"
+set from = "mail@example.com"
+set sendmail = "/usr/bin/msmtp -a {account-name}"
+set folder = "~/.mail/{account-name}/"
+set spoolfile = "+INBOX"
+
+alias me "My Real Name" "mail@example.com"
+
+set mbox_type = Maildir
+set ssl_starttls = yes
+set ssl_force_tls = yes
+
+unmailboxes *
+
+</code></pre>
+I'm gonna be honest with you here. I'm not 100% sure what some of these options do, or why are they here if they're already set somewhere else, but things break without them.<br>
+The important lines are:
+<ul>
+	<li><code>set sendmail</code> This sets the command used to send mail, in our case it's MSMTP with a specific account</li>
+	<li><code>set folder</code> Where did OfflineIMAP download the mail?</li>
+	<li><code>set mbox_type = Maildir</code> We use Maildir here and in OfflineIMAP</li>
+</ul>
+</p>
+<p>
+And that's it. You have successfully configured OfflineIMAP, MSMTP and mutt to work together in order to do one job: deliver your email to you. If you think this was too much work, there are some automated config generators that will do most of the work for you, but where is the fun in that?
+</p>
+<h4>Step 4 (Optional) get a notification when new mail arrives</h4>
+<p>
+I said in the beginning that I have a script running every minute downloading and notifying me of any new mail. If you only want synchronisation to happen automatically, OfflineIMAP can be run as a daemon. The downside is that it needs some extra configuration and you won't get any notifications.
+</p>
+<p>
+The script I use is:
+<pre><code>
+#!/bin/zsh
+
+# Download new mail
+offlineimap
+
+# Loop through every account in ~/.mail
+for account in $(ls ~/.mail); do
+	# Find all unread mail whose file is newer that the last time this script was run and count them
+	newcount=$(find ~/.mail/$account/INBOX/new/ -type f -newer ~/.config/mutt/.mailsynclast 2> /dev/null | wc -l)
+	# Are there any new unread mail?
+	if [ "$newcount" -gt "0" ]; then
+		# Send a notification
+		notify-send "New Mail" "$newcount new mail in mailbox $account" &
+	fi
+done
+
+# Update access time of a marker file
+touch ~/.config/mutt/.mailsynclast
+</code></pre>
+It requires a notification daemon running and a notify-send command.
+</p>
+<p>
+I have it running in a <code>while true; do</code> loop located in my .xinitrc with 30 second sleep after each run.
+</p>
+<h3>My muttrc</h3>
+<p>
+
+I promised to show my muttrc, but before I do, I just want to warn you that it's a mess of copy-pasted snippets, half of which I'm not sure what they do. I'll add comments to things that I consider useful
+
+<pre><code>
+
+# Read account information
+source mailboxes.muttrc
+
+bind index,pager g noop
+bind index \Cf noop
+set sleep_time = 0
+# Sort by date in reverse order. This makes new mail appear on the top instead of bottom
+set sort = 'reverse-date'
+# Use neovim to write new mail
+set editor = nvim
+#set copy = no
+set timeout = "5"
+set mail_check = "10"
+# This is a usefull little thing. It's what decides which program opens which attachment.
+# currently it's the default file from rtv (reddit terminal viewer)
+set mailcap_path = ~/.config/mutt/mailcap
+# set mailcap_path = ~/.mailcap
+set date_format="%d/%m/%y %I:%M"
+set index_format="%2C %zs %?X?A& ? %D %-15.15F %s (%-4.4c)"
+set markers = no
+set mark_old = no
+set mime_forward = yes
+set smtp_authenticators = 'gssapi:login'
+set wait_key = no
+# Automatically view html mail with w3m
+auto_view text/html
+alternative_order text/plain text/enriched text/html
+set rfc2047_parameters = yes
+
+# Scan the mail for links and let me open them with my browser
+macro index,pager \Cb "|urlscan -r 'setsid qutebrowser \"{}\"'"\n
+
+# General remappings
+bind editor &lt;space&gt; noop
+bind index G last-entry
+bind index gg first-entry
+bind pager j next-line
+bind pager k previous-line
+bind browser h goto-parent
+bind browser l select-entry
+bind pager,browser gg top-page
+bind pager,browser G bottom-page
+bind index,browser d half-down
+bind index,browser u half-up
+bind index D delete-message
+bind index U undelete-message
+bind index,browser F search
+bind index,pager R group-reply
+bind index \031 previous-undeleted # Mouse wheel
+bind index \005 next-undeleted # Mouse wheel
+bind pager \031 previous-line # Mouse wheel
+bind pager \005 next-line # Mouse wheel
+macro index,pager S &lt;sync-mailbox&gt;
+bind editor        &lt;Tab&gt; complete-query
+
+# View attachments properly.
+bind attach &lt;return&gt; view-mailcap
+set fast_reply           # skip to compose when replying
+set fcc_attach           # save attachments with the body
+unset mime_forward       # forward attachments as part of body
+set forward_format = "Fwd: %s"       # format of subject when forwarding
+set forward_decode                   # decode when forwarding
+set forward_quote                    # include message in forwards
+set reverse_name                     # reply as whomever it was to
+set include                          # include message in replies
+
+#Ctrl-R to mark all as read
+macro index \Cr "T~U&lt;enter&gt;&lt;tag-prefix&gt;&lt;clear-flag&gt;N&lt;untag-pattern&gt;.&lt;enter&gt;" "mark all messages as read"
+
+#sync email
+# macro index O "&lt;shell-escape&gt;$HOME/.config/mutt/etc/mailsync.sh&lt;enter&gt;" "run offlineimap to sync all mail"
+# macro index o "&lt;shell-escape&gt;$HOME/.config/mutt/etc/mailsync.sh -qf INBOX&lt;enter&gt;" "run offlineimap to sync inbox"
+
+# Notmuch searching
+macro index \Cf "&lt;enter-command&gt;unset wait_key&lt;enter&gt;&lt;shell-escape&gt;read -p 'notmuch query: ' x; echo \$x &gt;~/.cache/mutt_terms&lt;enter&gt;&lt;limit&gt;~i \"\`notmuch search --output=messages \$(cat ~/.cache/mutt_terms) | head -n 600 | perl -le '@a=&lt;&gt;;chomp@a;s/\^id:// for@a;$,=\"|\";print@a'\`\"&lt;enter&gt;" "show only messages matching a notmuch pattern"
+macro index A "&lt;limit&gt;all\n" "show all messages (undo limit)"
+
+# Default index colors:
+color index yellow default '.*'
+color index_author red default '.*'
+color index_number blue default
+color index_subject cyan default '.*'
+
+# For new mail:
+color index brightyellow black "~N"
+color index_author brightred black "~N"
+color index_subject brightcyan black "~N"
+
+# Header colors:
+color header blue default ".*"
+color header brightmagenta default "^(From)"
+color header brightcyan default "^(Subject)"
+color header brightwhite default "^(CC|BCC)"
+
+mono bold bold
+mono underline underline
+mono indicator reverse
+mono error bold
+color normal default default
+color indicator brightblack white
+color sidebar_highlight red default
+color sidebar_divider brightblack black
+color sidebar_flagged red black
+color sidebar_new green black
+color normal brightyellow default
+color error red default
+color tilde black default
+color message cyan default
+color markers red white
+color attachment white default
+color search brightmagenta default
+color status brightyellow black
+color hdrdefault brightgreen default
+color quoted green default
+color quoted1 blue default
+color quoted2 cyan default
+color quoted3 yellow default
+color quoted4 red default
+color quoted5 brightred default
+color signature brightgreen default
+color bold black default
+color underline black default
+color normal default default
+
+</code></pre>
+Like I said, a total mess, but I'm working on it
+</p>
