@@ -26,3 +26,12 @@ Once you're done with customising it to your liking, you can start writing blog 
 8. After that running `blog d` will run the deploy script (or you can run it directly). How that
    works is up to you to decide.
 
+# TODO:
+- Keep more metadata, like create/publish time
+- RSS generator
+
+# Contributing
+I'm open to Pull Requests and feature requests (through issues). If you find a bug (I'm sure you will, given how bad the code is), please report it as an issue, or create a PR with a fix.
+
+# Luke Smith's `lb`
+This blog system was inspired by [lb](https://github.com/lukesmithxyz/lb), just not as polished.
