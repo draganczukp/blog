@@ -120,7 +120,7 @@ function update-post(){
 
 function mark-for-publishing(){
 	read -q "?Do you want to mark this blog for publishing? [y/n]" pub
-	[[ "$pub" -eq "y" || "$pub" -eq "Y" ]] && cat $1 > $1 && \
+	[[ "$pub" -eq "y" || "$pub" -eq "Y" ]] && cat $1 > $2 && \
 	echo "\nRemember to render your posts again or your changes will have no effect"
 }
 
