@@ -170,8 +170,82 @@ but you'll have to remember that when configuring Dovecot
 <p>
 This is also where we tell the server to use SSL
 </p>
-<h2>DKIM, DMARC, SPF and rDNS</h2>
+<h2>Step 6: DKIM, DMARC, SPF and rDNS</h2>
+<h3>rDNS</h3>
 <p>
-If you were to send an email from this server to Gmail, you would quickly notice that it gets rejected. That's because, as far as Gmail knows, you're just a server sending messages without any signature, so you might be sending spam. Getting DKIM and DMARC working is the simple most confusing part of setting a mail server.
+Reverse DNS, or rDNS for show, means that if you lookup a domain by name, the resulting IP address points at the same domain. This is done with a PTR record. How to set it depends on your hosting and domain registrar. For Digital Ocean, all you have to do is rename the droplet to <code>domain.tld</code> (or <code>subdomain.domain.tld</code>)
 </p>
+<h3>Signing your mail</h3>
+<p>
+If you were to send an email from this server to Gmail, you would quickly notice that it gets rejected. That's because, as far as Gmail knows, you're just a server sending messages without any signature, so you might be sending spam. To prevent it, we need to sign our outgoing mail with DKIM and DMARC. Getting DKIM and DMARC working is the single most confusing part of setting a mail server.
+</p>
+<h3>DKIM_PROXY</h3>
+<p>
+Signing your mail requires passing it to a signing program, in this case its <code>dkimproxy</code>. You need to instal it with<pre><code>
+sudo pacman -S dkimproxy
+</code></pre>
+Then rename the default config so that it's used<pre><code>
+sudo mv /etc/dkimproxy/dkimproxy_out.conf{.example,}
+</code></pre>
+Then we need to modify it. Change these lines:<pre><code>
+domain 	example.org
+keyfile	/full/path/to/private.key
+selector selector1
+</code></pre>
+</p>
+<p>
+Domain is pretty obvious, it's just your domain. keyfile is your private key, the same you used earlier. But what is a selector? It's just a string that must match both here and in the DNS. Any string will work, but the "typical" selector is <code>default</code> or <code>dkimselector</code>
+Close the config file and start <code>dkimproxy_out</code> service with
+<pre><code>
+sudo systemctl enable --now dkimproxy_out
+</code></pre>
+</p>
+<p>
+Now we need to tell OpenSMTPD to pass mail through it. Open the <code>/etc/smtpd/smtpd.conf</code> file and add these lines:
+<pre><code>
+# Tables
+listen on lo port 10028 tag DKIM_OUT
+
+# Other listen directives
+# accept from any...
+
+accept tagged DKIM_OUT for any relay
+accept from local for any relay via "smtp://127.0.0.1:10027"
+</code></pre>
+Notice where these lines are in relation to what's already there. While technically they might work if you were to just paste them to the end, it's a good practice to keep all related directives together.
+</p>
+<p>
+Also, make sure your port numbers are correct. Don't be like me and don't spend 3-4 hours trying to figure out why it doesn't work just because you forgot a 0 in the port numbers.
+</p>
+
+<h2>Step 7: Adding DNS records</h2>
+<p>
+As I said before, PTR record should be set for you by your registrar or your hosting. You will also need a couple more records:
+<ol>
+	<li>MX record for domain.tld pointing at your server with any priority (for example: priority 10)</li>
+	<li>TXT record informing about your SPF settings. It should point to your domain. You can get very creative and make insanely complicated values, but a simple and working one looks like this:<pre><code>
+v=spf1 mx mx:domain.tld -all
+		</code></pre>
+	</li>
+	<li>TXT record telling about your DMARC policy (what to do with mail that doesn't have a DMAR signature). It should point to <code>_dmarc.domain.tld</code>. It has a bunch of parameters, but the only required ones are <code>v=DMARC1</code> and the policy. You can (and should) provide an email address where reports will be sent to and other useful stuff like that. The simplest working record is:<pre><code>
+v=DMARC1; p=none
+		</code></pre>
+		I have it set like this:<pre><code>
+v=DMARC1; p=none; rua=mailto:admin@draganczuk.tk
+		</code></pre>
+	</li>
+	<li>TXT record with your DKIM key (your certificate's public key). First you need to get the public key:
+		<pre><code>
+sudo openssl rsa -in /full/path/to/private/key -pubout
+		</code></pre>
+		You only need the part between BEGIN PUBLIC KEY and END PUBLIC KEY. This record should point to <code>selector._domainkey.domain.tld</code> and look like this:<pre><code>
+v=DKIM1; k=rsa; p=public key
+</code></pre>
+		</li>
+</ol>
+</p>
+<p>
+Once you set those up, test them with <a href="https://dmarc.globalcyberalliance.org/">this amazing tool</a>, if something doesn't work you, it will tell you and help you fix it.
+</p>
+<++>
 
