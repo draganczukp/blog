@@ -1,0 +1,41 @@
+<h3>The blog script</h3>
+<p>
+I created a shell script that handles most of the things related to blogging, like creating a post and publishing it. It does not use a database (unless you count plain text files) and employs a lot of sed bullshitery to make it all work.
+</p>
+<p>
+The whole script is available on my GitHub <a href="https://github.com/draganczukp/blog">here</a>. Just set the variables to suit your needs
+</p>
+
+<h3>How it works</h3>
+<p>Running the script by itself shows a menu with a few options, which can be passed as arguments instead.</p>
+<p>The option "c" asks for a post title, then creates an empty draft and opens it in default editor, which for me is nvim. The draft is just a HTML file, but without the whole html skeleton (things like doctype, head or opening/closing body tags).</p>
+<p>Once you're done writing the post, you are asked if you want the post to be marked for publishing. This just copies the draft to another
+folder, which helps keep ready posts separate from posts that still need some work.</p>
+<p>Posts can be later edited using option "u" (for update), which lists all posts to choose from with FZF.</p>
+<p>You can also use "d" to permanently delete a post. It is currently not possible to unpublish a post once it has been published from the script. You have to delete it from "published" folder manually.</p>
+<p>Once you have a couple of posts ready, you can render them with "r". This does three things:
+<ul>
+	<li>create finished .html files for each published post (like this one) by loading a template and replacing specific things with a post</li>
+	<li>Create a list of links to all the rendered posts</li>
+	<li>Create a big page with every single post one after another</li>
+</ul>
+I might also add RSS to the mix, but I don't know if anyone will use it.
+</p>
+<p>
+The last step is deploying the blog with "u" (or running <code>./deploy</code> directly). For me it copies specific files to my VPS using scp, then runs a build script with ssh, but you can chage it to do whatever you want.
+</p>
+<p>
+That's it. All you have to do is set your server to show your blog and you're done.
+</p>
+
+<h3>OMG you copied Luke Smith's lb!!!11!!1!one!oneone!</h3>
+<p>
+Yes, I did base my script on his. I saw what he did and I thought to myself: "I can do that too". So I did. Mine isn't as compact as his and depends on FZF, but it has some extra features, like being compatible with every web server, not just Apache.
+</p>
+<p>
+Besides, I treat Luke as a mentor who taught me a lot of things, like Vim text objects, sed and Latex. I use a lot of snippets copy-pasted from his dotfiles into mine and they are great little things I would never have thought about
+</p>
+<p>
+If Luke doesn't like the fact that I practically copied his script, he can contact me through multiple means. Github issues would be the simples way.
+</p>
+
