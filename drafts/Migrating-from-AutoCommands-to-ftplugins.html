@@ -1,0 +1,153 @@
+
+<h2>Why?</h2>
+<p>
+If you're like me, you have a lot of autocommands for specific file types in your .vimrc. Specific <code>setlocal</code>s, some nice mappings, etc. After a while those <code>autocmd</code>s start adding up and you soon have hundreds of lines of <pre><code>
+autocmd FileType file setlocal foo=bar
+</code></pre>
+</p>
+<p>
+You might want to put those commands in a function and call it once, or maybe put them in a separate file that you source with a single autocmd. At this poing you'll start wondering if there's a better way. Of course there is. We're using Vim after all, there is almost always a better way. Enter <code>ftplugins</code>.
+</p>
+
+<h2>What are ftplugins?</h2>
+<p>
+Filetype plugins, or <code>ftplugin</code>s for short, are <code>.vim</code> files that run specific commands depending on what file is opened. Vim has a lot (and I mean a lot) ftplugins built in and plugins can add additional ones.
+</p>
+
+<h2>How to use them</h2>
+<p>
+<code>ftplugin</code>s are sourced automatically (assuming you have <code>filetype plugin on</code> in your .vimrc), as long as they're in a specific folder and have a specific file name. You can write either a complete replacement to an existing <code>ftplugin</code>, or just add extra stuff to whatever Vim does by default. You control that with the directory you put it in.
+</p>
+<p>
+The file has to be named in a specific way: <code>[file type].vim</code>. You can also name it <code>[file type]_whatever.vim</code>, though I personally don't see any reason for that. The directory where it should live depends on what you want to do
+</p>
+
+<h4>Enhance defaults</h4>
+<p>
+This is what I recommend for most users. You can add key bindings, extra <code>setlocal</code>s, override a single default setting, maybe a few new commands, or whatever else you have in your <code>autocmd</code>s.
+In order to use your new settings, NeoVim users put the file in <code>~/.config/nvim/after/ftplugin,</code> while for Vim users it's <code>~/.vim/after/ftplugin/</code>
+</p>
+
+<h4>Completely override default settings</h4>
+<p>
+A word of warning before you do that: You'll have to set up <i>everything</i> Vim does by default for that specific file type. This includes omni function, comment string, format options etc. It's almost always overkill and you lose the ability to receive upstream updates for the file type.
+If you still want to go for that, put your file in <code>~/.local/share/nvim/site/ftplugin/</code> for NeoVim, or <code>~/.vim/ftplugin/</code> for Vim
+</p>
+
+<h2>ftplugin file structure</h2>
+<p>
+While the file structure isn't forced upon you, there are some things the plugin file should have: a header, a check whether it needs to load or not, and an undo
+</p>
+
+<h4>Header</h4>
+<p>
+A header is just a comment describing the file. It's useful when sharing it on the Internet, so the other person knows what it is, when was it last updated, or who made it.
+I usually use a header that looks like this:
+<pre><code>
+" *.[file] filetype config
+" Created: [date]
+" Last Modified: [date]
+" Creator: Przemek Dragańczuk <admin@draganczuk.tk>
+" Licence: WTFPL
+</code></pre>
+Feel free to use it and modify as needed
+</p>
+
+<h4>Loading check</h4>
+<p>
+Loading a file multiple times can cause some problems, like running a command multiple times. You can fix it in a simple way: check if a specific variable is defined, if it is, then there is no need to load the file, otherwise set the variable and run the rest of the file. The code for that looks like this:<pre><code>
+if exists("b:did_ftplugin")
+	finish
+endif
+let b:did_ftplugin = 1
+</code></pre>
+I prefer naming the variable depending on the filetype, for example <code>b:did_html_ftplugin</code>, that way I have a way to disable this specific file from loading by just putting <code>b:did_[filetype]_ftplugin = 1</code> in my .vimrc
+</p>
+
+<h4>Undo</h4>
+<p>
+What would happen if Vim guessed the filetype wrong and then you set it manually with <code>:setfiletype</code>? Vim would source the <code>ftplugin</code> for what it guessed, then it would source the correct one. This means that you still have all the settings from the incorrect <code>ftplugin</code>. You can get around that by setting a variable <code>b:undo_ftplugin</code> to contain all the commands that will revert whatever the <code>fftplugin</code> did.
+</p>
+<p>
+I personally put them all in a function, like this: <pre><code>
+function! s:undo()
+setl formatoptions&lt;
+setl tabstop&lt;
+setl textwidth&lt;
+endfunction
+let b:undo_ftplugin = "call s:undo()"
+</code></pre>
+</p>
+<p>
+Calling <code>setlocal [setting]&lt;</code>(notice the "&lt;" at the end) resets the setting to it's global value.
+</p>
+
+<h4>Resulting boilerplate</h4>
+<p>
+After doing everything above you should have a .vim file that contains the following:
+<pre><code>
+" *.[file] filetype config
+" Created: [date]
+" Last Modified: [date]
+" Creator: [creator]
+" Licence: [licence]
+
+if exists("b:did_[file]_ftplugin")
+	finish
+endif
+let b:did_[file]_ftplugin=1
+
+let b:undo_ftplugin = "call s:undo()"
+function s:undo()
+	
+endfunction
+</code></pre>
+</p>
+
+<h5>Update</h5>
+<p>
+It was brought to my attention that <code>b:undo_ftplugin</code> overwrites the undo created by the builtin <code>ftplugin</code>. In order to fix it, we need to change one line:
+<pre><code>
+let b:undo_ftplugin <span style="color:red">.</span>= "call s:undo()"
+</code></pre>
+Notice the red dot, which means Vim will append to, instead of overwriting, the variable
+</p>
+
+
+<h2>Writing the actual plugin</h2>
+<p>
+Now that we have the boilerplate out of the way, we can get to setting some stuff. Using <code>ftplugin</code>s gives us some extra modifiers to make sure we only affect the files we want.
+</p>
+
+<h4>setlocal</h4>
+<p>
+<code>setlocal</code> works how it used to, just remember to revert it in <code>s:undo()</code>
+</p>
+
+<h4>Key mappings</h4>
+<p>
+You can create maps that don't affect other buffers by adding <code>&lt;buffer&gt;</code> to your <code>map</code> commands. For example: 
+<pre><code>
+nnoremap &lt;buffer&gt; &lt;Leader&gt;e :echo "Hello world"
+</code></pre>
+will cause pressing &lt;Leader&gt;e to display "Hello world", but only for specific filetypes
+</p>
+
+<h4>Variables</h4>
+<p>
+If you want/need to use some variables, you can prepend them with <code>s:</code> or <code>b:</code> to make them visible only in this script (the <code>ftplugin</code> you're writing) or current buffer respectively
+</p>
+
+<h2>That's it</h2>
+<p>
+You can now move all the stuff you set in auto commands or auto groups to their own <code>ftplugin</code>s, cleaning up your .vimrc of all those <code>autocmd FileType...</code> calls.
+</p>
+
+<h2>Reference</h2>
+<p>
+<ul>
+	<li><code>:h write-plugin</code> - Overview on writing Vim plugins</li>
+	<li><code>:h ftplugin</code> - Information specific to <code>ftplugin</code>s</li>
+</ul>
+</p>
+
