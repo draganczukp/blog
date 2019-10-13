@@ -59,7 +59,6 @@ code {
 :not(pre) > code {
 	border: solid 1px lighten(#333, 10%);
 	border-radius: 5px;
-	display: inline-block;
 	background-color: #444;
 	padding: 2px;
 	margin: 0;
@@ -72,7 +71,8 @@ pre {
 	width: 90%;
 	code {
 		margin: 15px;
-		margin-left: 25px;
+		margin-top: auto;
+		// margin-left: 25px;
 		display: block;
 	}
 }

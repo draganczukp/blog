@@ -1,0 +1,17 @@
+#!/bin/zsh
+sed < $1 -r \
+'/<\/?(html|body|head|script|link|meta|title|article|footer)/d;
+/DOCTYPE/d;
+s/^\s+//;
+s/<\/?br>//;
+s/ id=".*"//;
+s/\s*<h2>(.*)<\/h2>/===== \1 =====/;
+s/<h[34]>(.*)<\/h[34]>/=== \1 ===/;
+s/<p>(.*)$/ \1/;
+s/^(.*)<\/p>/\1/;
+s/<\/?[uo]l>//;
+s/<li>(.*)<\/li>/ - \1/;
+s/<a href="https?:\/\/([^\/]*)((\/\w+)+)">(.*)<\/a>/\nh\4	\2	\1	70\n/;
+s/<a href="([^"]*).html">([^<]*)<\/a>/\n0\2	\1 draganczuk.tk	70\n/g
+s/(<pre><code>|<\/code><\/pre>)/\n###\n/;
+'
