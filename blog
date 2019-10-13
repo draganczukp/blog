@@ -47,7 +47,7 @@ function new-post(){
 	[ $(file $post | grep empty -q) ] && echo "File is empty. Did you forget to save?" && exit 2;
 	echo $title >> $titles/$escaped.html.title
 
-	mark-for-publishing $post $published/escaped.html
+	mark-for-publishing $post $published/$escaped.html
 
 	exit 0;
 }
@@ -109,7 +109,7 @@ function update-post(){
 
 	post=$drafts/$(basename $post .html.title).html
 
-	local escaped=$(basename post .html | sed "s/ /-/g")
+	local escaped=$(basename $post .html | sed "s/ /-/g")
 
 	# echo $post
 	[ -f $post ] && $EDITOR $post
