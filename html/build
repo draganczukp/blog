@@ -1,5 +1,6 @@
 #!/bin/zsh
 
 pushd $(dirname $0)
+yarn
 yarn run build
 popd
