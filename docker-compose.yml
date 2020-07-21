@@ -9,15 +9,9 @@ services:
         restart: ${RESTART}
         labels:
           - "traefik.enable=true"
-          - "traefik.http.routers.blog.entrypoints=http"
-          - "traefik.http.routers.blog.rule=Host(`${TLD}`)"
-          - "traefik.http.middlewares.blog-https-redirect.redirectscheme.scheme=https"
-          - "traefik.http.routers.blog.middlewares=blog-https-redirect"
-          - "traefik.http.routers.blog-secure.entrypoints=https"
-          - "traefik.http.routers.blog-secure.rule=Host(`${TLD}`)"
-          - "traefik.http.routers.blog-secure.tls=true"
-          - "traefik.http.routers.blog-secure.tls.certresolver=http"
-          - "traefik.http.routers.blog-secure.service=blog"
+          - "traefik.http.routers.blog.entrypoints=https"
+          - "traefik.http.routers.blog.rule=Host(`blog.draganczuk.me`)"
+          - "traefik.http.routers.blog.tls=true"
           - "traefik.http.services.blog.loadbalancer.server.port=80"
           - "traefik.docker.network=proxy"
 
