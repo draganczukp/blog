@@ -74,4 +74,10 @@ footer {
   text-align: right;
 }
 
+.offtopic {
+  background-color: #111111;
+  padding: 5px;
+  border-radius: 10px;
+}
+
 /*# sourceMappingURL=style.css.map */
