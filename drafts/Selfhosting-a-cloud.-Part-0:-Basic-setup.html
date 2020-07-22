@@ -233,10 +233,11 @@ docker run hello-world
 This should download the hello-world image and print some messages telling you that docker works fine.
 </p>
 <h2>Run a whoami service</h2>
+<h3>Docker command</h3>
 <p>
 To run the whoami service using plain docker execute this command:
 <pre><code>
-docker run -p 80:80 containours/whoami
+docker run -p 80:80 --name=whoami containous/whoami
 </code></pre>
 Now open your domain in your browser. It should show you some information that's completely useless to you.
 </p>
@@ -246,7 +247,59 @@ A simple explanation for this command:
 		<li><code>docker</code> - do something with docker</li>
 		<li><code>run</code> - run a container</li>
 		<li><code>-p 80:80</code> - connect server's port 80 to container's port 80. This is what actually allows you to open it in browser</li>
+		<li><code>--name=whoami</code> - this assigns a name to this container. Without this docker would assign something random</li>
+		<li><code>containous/whoami</code> - what image to use for this container. An image is like a template which docker will use to create a container</li>
 </ul>
+</p>
+<p>
+Pressing Ctrl+C will stop the container. I recommend also running <code>docker system prune</code> to remove the container from disk.
+</p>
+<h3>Docker-compose</h3>
+<p>
+A good practice when using docker-compose is to keep every service and their requirements (things like DB servers) in their own files. To keep organised we'll keep those files in separate folders.
+</p>
+<p>
+Create a main folder to keep those files. I recommend the folder to be called "servers" and created in your home directory:
+<pre><code>
+mkdir ~/servers
+</code></pre>
+</p>
+<p>
+Now cd into that folder, create a new subfolder called whoami and cd into that. In that folder create and edit a file called <code>docker-compose.yml</code>:
+<pre><code>
+nano docker-compose.yml
+</code></pre>
+</p>
+<p>
+In this file paste the following:
+<pre><code>
+version: "3"
+services:
+		whoami:
+				image: containous/whoami
+				container_name: whoami
+				ports:
+						- 80:80
+</code></pre>
+Close the file and run this command to start the service:
+<pre><code>
+docker-compose up -d
+</code></pre>
+</p>
+<p>
+Most of this file is straight forward: in <code>services</code> section you define a service similarly to how you did with docker command. The first whoami right after <code>services</code> is how the service is called (that's not container name).
+</p>
+<p>
+If you're wondering about that <code>version: "3"</code> line, it's pretty much boilerplate. It tells docker-compose which syntax you want available in your docker-compose.yml. Since syntax from versions 1 and 2 work in version 3, there's no reason (that I know of) to use older versions.
+</p>
+<p>
+The command <code>docker-compose up</code> creates and starts the container. <code>-d</code> flag means that the service should run in background.
+</p>
+<p>
+Once you test that everything works you can stop the service with <pre><code>
+docker-compose down
+</code></pre>
+However, the beauty of docker-compose is that you can modify the <code>docker-compose.yml</code> file and when you run <code>docker-compose up -d</code> the container will be automatically modified and restarted, even if it was already running.
 </p>
 <h1>You now have a working server</h1>
 <p>
