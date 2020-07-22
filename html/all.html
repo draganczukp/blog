@@ -244,10 +244,11 @@ docker run hello-world
 This should download the hello-world image and print some messages telling you that docker works fine.
 </p>
 <h2>Run a whoami service</h2>
+<h3>Docker command</h3>
 <p>
 To run the whoami service using plain docker execute this command:
 <pre><code>
-docker run -p 80:80 containours/whoami
+docker run -p 80:80 --name=whoami containous/whoami
 </code></pre>
 Now open your domain in your browser. It should show you some information that's completely useless to you.
 </p>
@@ -257,7 +258,59 @@ A simple explanation for this command:
 		<li><code>docker</code> - do something with docker</li>
 		<li><code>run</code> - run a container</li>
 		<li><code>-p 80:80</code> - connect server's port 80 to container's port 80. This is what actually allows you to open it in browser</li>
+		<li><code>--name=whoami</code> - this assigns a name to this container. Without this docker would assign something random</li>
+		<li><code>containous/whoami</code> - what image to use for this container. An image is like a template which docker will use to create a container</li>
 </ul>
+</p>
+<p>
+Pressing Ctrl+C will stop the container. I recommend also running <code>docker system prune</code> to remove the container from disk.
+</p>
+<h3>Docker-compose</h3>
+<p>
+A good practice when using docker-compose is to keep every service and their requirements (things like DB servers) in their own files. To keep organised we'll keep those files in separate folders.
+</p>
+<p>
+Create a main folder to keep those files. I recommend the folder to be called "servers" and created in your home directory:
+<pre><code>
+mkdir ~/servers
+</code></pre>
+</p>
+<p>
+Now cd into that folder, create a new subfolder called whoami and cd into that. In that folder create and edit a file called <code>docker-compose.yml</code>:
+<pre><code>
+nano docker-compose.yml
+</code></pre>
+</p>
+<p>
+In this file paste the following:
+<pre><code>
+version: "3"
+services:
+		whoami:
+				image: containous/whoami
+				container_name: whoami
+				ports:
+						- 80:80
+</code></pre>
+Close the file and run this command to start the service:
+<pre><code>
+docker-compose up -d
+</code></pre>
+</p>
+<p>
+Most of this file is straight forward: in <code>services</code> section you define a service similarly to how you did with docker command. The first whoami right after <code>services</code> is how the service is called (that's not container name).
+</p>
+<p>
+If you're wondering about that <code>version: "3"</code> line, it's pretty much boilerplate. It tells docker-compose which syntax you want available in your docker-compose.yml. Since syntax from versions 1 and 2 work in version 3, there's no reason (that I know of) to use older versions.
+</p>
+<p>
+The command <code>docker-compose up</code> creates and starts the container. <code>-d</code> flag means that the service should run in background.
+</p>
+<p>
+Once you test that everything works you can stop the service with <pre><code>
+docker-compose down
+</code></pre>
+However, the beauty of docker-compose is that you can modify the <code>docker-compose.yml</code> file and when you run <code>docker-compose up -d</code> the container will be automatically modified and restarted, even if it was already running.
 </p>
 <h1>You now have a working server</h1>
 <p>
@@ -321,102 +374,7 @@ Despite my hatred towards bloat, I still use a lot of bloated software. I use:
 	<li>Facebook and messenger - Simply for communication with my classmates. If you say that we should use something else, you try to tell about 30 student that they should stop using the communicator they used for years and they use to talk with almost everyone and use something maybe one of them heard about before. I'll wait here and laugh at you with them</li>
 	<li>Spotify - I haven't found any other way to listen to music everywhere without problems that's just as cheap and, what's more important, legal</li>
 </ul>
-</p></article> <article><h2>A non comprehensive guide to DWM</h2><h2>What is DWM?</h2>
-<p>
-DWM is a dynamic tiling window manager created by guys at <a href="https://suckles.org">https://suckless.org</a>. The "dynamic tiling" part means that windows are arranged based on certain predefined rules. This is different from floating window managers (like xfwm4, the window manager for the XFCE desktop environment), where each window can occupy any part of the screen and overlap other windows. If you want more information on tiling vs floating WMs, take a look <a href="https://www.youtube.com/watch?v=Obzf9ppODJU">here</a>, where a YouTuber named Distrotube made an hour
-long video about tiling WMs.
-</p>
-<p>
-The thing that makes DWM stand out from other, more popular WMs, like i3, is the simplicity, at least in term of code. It's written in plain C, it doesn't exceed 2000 SLOC, doesn't contain most of the "nice" things to have, like transparency, gaps around window, and the most important one: it doesn't use any external config files. Each change requires you to recompile and restart the whole thing.
-</p>
-<h2>How to install it?</h2>
-<p>
-While it might be tempting to install DWM with your distributions package manager, it's not a good idea if you want to change anything at all (unless you want to use the package just for installing dependencies, in which case go ahead).
-</p>
-<p>
-Installing is simple. Download the source, compile, install and run. Here's a step by step guide:
-<pre><code>
-git clone https://git.suckless.org/dwm
-cd dwm
-make
-sudo make install
-</code></pre>
-That's it. Now you just have to run it, either by writing (or copying from the Internet) a session file used by a display manager (sddm, gdm, etc.) or by adding <code>dwm</code> to your <code>.xinitrc</code> and running <code>startx</code> from tty.
-</p>
-<p>
-You might also want to install <code>dmenu</code> (an application launcher) and <code>st</code> (terminal emulator from the suckless team)
-</p>
-<h2>Quick usage guide</h2>
-If you've ever used any tiling window manager, especially a dynamic one with predefined layouts, you can probably skip this section.
-<h3>Opening programs</h3>
-<p>
-Before we do anything, you need to know one thing: DWM is very keyboard centered and doing almost anything requires a key combination. All combinations use a modifier key, which by default is Alt (I'll show you how to change that later if you want). This means that whenever I say something like "press <code>MOD+p</code>" what I mean is "hold Alt and press p".
-</p>
-<p>
-DWM has some default keys defined, which makes it "usable" out of the box. One of them is <code>MOD+Return</code> (<code>MOD+Enter</code>), which spawns a new terminal window. By default it's <code>st</code>.
-</p>
-<p>
-Go ahead and open a few of them. Notice how the windows are laid out: One window always takes half the available space on screen, while the rest are stacked on top of each other. This is the default layout in DWM and it's called "Master and stack", you can probably see why: one
-master window and a stack of smaller windows.
-</p>
-<p>
-To kill the active window (the one highlighted by a border) you have to press <code>MOD+Shift+C</code>.
-</p>
-<p>
-If you want to run a browser, you need to open an application launcher and then choose and launch it. It sounds complicated, but it's actually pretty easy and a lot faster than using GUI.
-</p>
-<p>
-To open the application launcher press <code>MOD+P</code>, start typing the name of the browser and when it's highlighted press Enter. After a few minutes it becomes a second nature.
-</p>
-<h3>Windows management</h3>
-<p>
-You can move between windows using mouse, but, to quote a classic, ain't nobody got time for that! Using mouse requires you to lift your hand from the keyboard, move it to the mouse, move it and return your hand to the keyboard. That's like 2 seconds wasted! In order to move focus to a different window, press <code>MOD+j</code> and <code>MOD+k</code>. This moves focus to next/previous window in the list.
-</p>
-<p>
-With <code>MOD+Shift+Return</code> you can exchange current window with the master window. Pressing <code>MOD+H</code> and <code>MOD+L</code> will resize the master window.
-</p>
-<h3>Tags</h3>
-You're probably wondering what are those numbers on the top bar. They are indicators for tags and display some useful information about them.
-<p>
-<p>
-Tags are DWM's way of organising windows into a kind of virtual workspaces. A window can be tagged with one or more tags. A window tagged with "1" will only appear when showing tag "1". A window tagged with "1" and "3" will be visible when showing either tag "1" or tag "3".
-</p>
-<p>
-You can choose which tag is visible with <code>MOD+[1-9]</code> for single tag, or you can use <code>MOD+Control+[1-9]</code> to show multiple tags at once. Windows are automatically tagged to show on your currently selected tag
-</p>
-<p>In order to tag a window use <code>MOD+Shift+[1-9]</code>. This will set the window to that tag. <code>MOD+Shift+Control+[1-9]</code> will toggle additional tags.
-</p>
-<h2>How do you configure it?</h2>
-<p>
-You're probably thinking that in order to use it you have to learn C and dig deep into the source code just to change some key bindings. Luckily, this is not the case. While it looks intimidating at first, the configuration is not that much more difficult that configuring something like i3. You still change one text file, it's just that the syntax is a bit different and you have to recompile to see your changes.
-</p>
-<p>
-Pretty much all the configuration for dwm happens in the file <code>config.h</code> in the source directory.
-</p>
-<h3>Sections of the config file</h3>
-<h4>Appearance</h4>
-<p>
-This section contains the basic configuration for how DWM looks
-<ul>
-		<li><code>borderpx</code> - How big is the border around windows</li>
-		<li><code>snap</code> - distance at which floating windows snap to edges</li>
-		<li><code>showbar</code> - whether or not show the bar at the top</li>
-		<li><code>topbar</code> - is the bar at the top (1) or at the bottom (0)?</li>
-		<li><code>*fonts[]</code> - Fonts used in the bar</li>
-		<li><code>dmenufont</code> - Font used by dmenu</li>
-		<li><code>col_*[]</code> - colors</li>
-		<li><code>*colors[][3]</code> - Color Scheme definitions. You probably shouldn't need to change it</li>
-</ul>
-</p>
-<h4>Tags</h4>
-<p>
-<code>*tags[]</code> defines how the tags are displayed in the bar. There should always be 9 of them, otherwise things will break.
-</p>
-<p>
-<code>rules[]</code> defines where to put windows based on certain conditions
-</p>
-<++>
-<++></article> <article><h2>Get comfortable in (neo)mutt</h2><h3>What is mutt and neomutt?</h3>
+</p></article> <article><h2>Get comfortable in (neo)mutt</h2><h3>What is mutt and neomutt?</h3>
 <p>Mutt is a terminal mail client. Neomutt is a fork (or a collection of patches, to be more exact) of mutt with some added features. For the rest of the post I will be talking only about neomutt, but I might refer to it as "mutt".</p>
 <h3>Why not use something like Thunderbird</h3>
 <p>I've used Thunderbird, as well as many other clients and web UIs in the past. While most of them do what they're supposed to do, a lot of them have issues I can't live with.</p>
