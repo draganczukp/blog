@@ -1,167 +1,82 @@
 #!/bin/zsh
 
-# This script assumes that it's run from the repo root.
-# Things *WILL* break if it's run any other way that `./blog`
-	# Exit codes:
-	# -1: No option selected
-	# 0: OK
-	# 1: Tried to add a new post with an existing name
-	# 2: Created post is empty
-
-# Folder with .html files
-html="html"
-# Folder with published but unrendered posts
-published="published"
-# Folder for unpublished posts
-drafts="drafts"
-# Rendered posts
-posts="$html/posts"
-# Directory containing just the titles
-titles="titles"
-
-# A template for an post
-posttemplate="$html/post.template.html"
-# List of links to every post
-postlisttemplate="$html/list.template.html"
-# All entries on one page
-allentriestemplate="$html/all.template.html"
-
-# Output files.
-postlist="$html/list.html"
-allentries="$html/all.html"
-
-function new-post(){
-	# Get the title of the post
+new-post() {
 	read "?Title: " title
-	# Remove replace all spaces with dashes
-	local escaped=$(echo $title | sed "s/ /-/g")
-	# Where the post is stored
-	local post=$drafts/$escaped.html
+	escaped=$(sed 's/ /-/g' <<< $title)
+	postfile="drafts/$escaped.html"
 
-	# Does a post with that name exist?
-	[ -f $post ] && echo "Post with that name already exists" && exit 1;
+	if [[ -f $postfile ]]; then
+		echo "Post with this name already exists"
+		exit
+	fi
 
-	# Create a new post
-	touch $post
-	$EDITOR $post
-	[ $(file $post | grep empty -q) ] && echo "File is empty. Did you forget to save?" && exit 2;
-	echo $title >> $titles/$escaped.html.title
+	cat << EOF > metadata/$title
+title=$title
+EOF
 
-	mark-for-publishing $post $published/$escaped.html
-
-	exit 0;
+	touch $postfile
+	edit $escaped.html
 }
 
-function render-post(){
-	local file=$(basename $1)
-	echo "Start rendering of $file"
-	local content=$(cat $published/$file)
-	local outfile=$posts/$file
-	local title=$(cat $titles/$file.title)
-
-	sed -e "\\\\<!-- POST -->\\{r $1" -e "d;}" -e "s\\<!-- TITLE -->\\$title\\g" < $posttemplate > $outfile
-
-
-	echo "Done rendering $file"
+update() {
+	ls drafts \
+		| fzf \
+		| read post
+	edit $post
 }
 
-function render-postlist(){
-	local list=""
-	echo "Starting to render the list of posts"
-	for post in $(/bin/ls -t $published/*.html); do
-		local bn=$(basename $post)
-		local p="<li><a href='$(basename $posts)/$bn'>$(cat $titles/$bn.title)</a></li>"
-		list="$list $p"
+edit() {
+	postfile=$1
+	$EDITOR drafts/$postfile
+
+	read "?Is this post ready for rendering? (y/N): " ans
+
+	if [[ ans == [yY] ]]; then
+		ln -sf drafts/$postfile published/$postfile
+	fi
+}
+
+render-post() {
+	echo "Started rendering $1"
+	template=templates/post.template.html
+	echo "Template: $template"
+	content=$(cat published/$1.html)
+
+	awk < metadata/$1 -F'=' '/title/{print $2}' | read title
+	echo "Title: $title"
+
+	# echo awk -v title=$title -v content=$content < $template '/<!-- TITLE -->/{print $title} /<!-- POST -->/{print $content} {print}'
+	awk -v title=$title -v content=$content < $template '/<-- TITLE -->/{print title} /<-- POST -->/{print content} !/<--/{print}' > html/posts/$1.html
+	echo "Done rendering $1"
+}
+
+render-list() {
+
+}
+
+render-rss() {
+
+}
+
+render() {
+	for post in published/*.html; do
+		render-post $(basename $post .html)
 	done
 
-	sed "s\\<!-- POSTS -->\\$list\\g" < $postlisttemplate > $postlist
-	echo "Done rendering post list"
+	render-list
+	render-rss
 
 }
 
-function render-all(){
-	echo "Starting to render all posts on a single page"
-	local list=""
-	for post in $(/bin/ls -t $published/*.html); do
-		local bn=$(basename $post)
-		local p="<article><h2>$(cat $titles/$bn.title)</h2>$(cat $post | sed 's/\\c/\\\\c/g')</article>"
-		list="$list $p"
-	done
-	d=$(mktemp)
-	echo $list > $d
+echo "New\nEdit\nRender" \
+	| fzf \
+	| read choice
 
-	sed -e "\\\\<!-- POSTS -->\\{r $d" -e "d;}" < $allentriestemplate > $allentries
-	rm -rf $d
-	echo "Done rendering single page"
-}
-
-function render(){
-	for post in $(/bin/ls -t $published/*.html); do
-		render-post $post
-	done
-	render-postlist
-	render-all
-}
-
-function update-post(){
-
-	post=$(/bin/ls $titles/*.html.title | sed -r "s/$titles\/(.*).html.title/\\1/" | fzf)
-
-	post=$drafts/$(basename $post .html.title).html
-
-	local escaped=$(basename $post .html | sed "s/ /-/g")
-
-	# echo $post
-	[ -f $post ] && $EDITOR $post
-
-	mark-for-publishing $post $published/$escaped.html
-
-}
-
-function mark-for-publishing(){
-	read -q "?Do you want to mark this blog for publishing? [y/n]" pub
-	[[ "$pub" -eq "y" || "$pub" -eq "Y" ]] && cat $1 > $2 && \
-	echo "\nRemember to render your posts again or your changes will have no effect"
-}
-
-function delete-post(){
-	post=$(/bin/ls $titles/*.html.title | sed -r "s/$titles\/(.*).html.title/\\1/" | fzf)
-	read -k "?Are you sure you want to delete post $post ?[yn]" ans
-	echo $ans
-	[ "$ans" = "y" ] && rm -f $drafts/$post.html $titles/$post.html.title $published/$post.html $posts/$post.html || exit;
-
-}
-
-# If the user provides an option, there is no reason to ask them again
-if [[ "$#" -gt "0" ]]; then
-	action=$1
-else
-	echo """What would you like to do?
-c	Create a new post
-u	Update an existing post
-r	Render all posts
-p	Deploy blog (requires a deploy script)
-d	Delete a post
-
-"""
-	read -k action
-fi
-echo ""
-pushd $(dirname $0) > /dev/null 2>&1
-case $action in
-	("c")
+case $choice in
+	New)
 		new-post;;
-	("u")
-		update-post;;
-	("r")
+	Edit)
+		update;;
+	Render)
 		render;;
-	("p")
-		# Deploying is handled by external script so that everyone can customise it to their needs
-		[ -f "./deploy" ] && ./deploy;;
-	("d")
-		delete-post;;
-	(*)
-		echo "Zła akcja";;
 esac
-
-popd > /dev/null 2>&1

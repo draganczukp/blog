@@ -3,11 +3,15 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width">
-		<title>Get comfortable in (neo)mutt</title>
+		<title>
+Get comfortable in (neo)mutt
+		</title>
 		<link rel="stylesheet" href="/dist/css/style.css" type="text/css" media="all">
 	</head>
 	<body>
-		<h2>Get comfortable in (neo)mutt</h2>
+		<h2>
+Get comfortable in (neo)mutt
+		</h2>
 		<article>
 <h3>What is mutt and neomutt?</h3>
 <p>Mutt is a terminal mail client. Neomutt is a fork (or a collection of patches, to be more exact) of mutt with some added features. For the rest of the post I will be talking only about neomutt, but I might refer to it as "mutt".</p>
@@ -277,7 +281,7 @@ I promised to show my muttrc, but before I do, I just want to warn you that it's
 source mailboxes.muttrc
 
 bind index,pager g noop
-bind index \Cf noop
+bind index Cf noop
 set sleep_time = 0
 # Sort by date in reverse order. This makes new mail appear on the top instead of bottom
 set sort = 'reverse-date'
@@ -303,7 +307,8 @@ alternative_order text/plain text/enriched text/html
 set rfc2047_parameters = yes
 
 # Scan the mail for links and let me open them with my browser
-macro index,pager \cb "|urlscan -r 'setsid qutebrowser \"{}\"'"\n
+macro index,pager cb "|urlscan -r 'setsid qutebrowser "{}"'"
+
 
 # General remappings
 bind editor &lt;space&gt; noop
@@ -321,10 +326,10 @@ bind index D delete-message
 bind index U undelete-message
 bind index,browser F search
 bind index,pager R group-reply
-bind index \031 previous-undeleted # Mouse wheel
-bind index \005 next-undeleted # Mouse wheel
-bind pager \031 previous-line # Mouse wheel
-bind pager \005 next-line # Mouse wheel
+bind index  previous-undeleted # Mouse wheel
+bind index  next-undeleted # Mouse wheel
+bind pager  previous-line # Mouse wheel
+bind pager  next-line # Mouse wheel
 macro index,pager S &lt;sync-mailbox&gt;
 bind editor        &lt;Tab&gt; complete-query
 
@@ -340,15 +345,16 @@ set reverse_name                     # reply as whomever it was to
 set include                          # include message in replies
 
 #Ctrl-R to mark all as read
-macro index \Cr "T~U&lt;enter&gt;&lt;tag-prefix&gt;&lt;clear-flag&gt;N&lt;untag-pattern&gt;.&lt;enter&gt;" "mark all messages as read"
+macro index Cr "T~U&lt;enter&gt;&lt;tag-prefix&gt;&lt;clear-flag&gt;N&lt;untag-pattern&gt;.&lt;enter&gt;" "mark all messages as read"
 
 #sync email
 # macro index O "&lt;shell-escape&gt;$HOME/.config/mutt/etc/mailsync.sh&lt;enter&gt;" "run offlineimap to sync all mail"
 # macro index o "&lt;shell-escape&gt;$HOME/.config/mutt/etc/mailsync.sh -qf INBOX&lt;enter&gt;" "run offlineimap to sync inbox"
 
 # Notmuch searching
-macro index \Cf "&lt;enter-command&gt;unset wait_key&lt;enter&gt;&lt;shell-escape&gt;read -p 'notmuch query: ' x; echo \$x &gt;~/.cache/mutt_terms&lt;enter&gt;&lt;limit&gt;~i \"\`notmuch search --output=messages \$(cat ~/.cache/mutt_terms) | head -n 600 | perl -le '@a=&lt;&gt;;chomp@a;s/\^id:// for@a;$,=\"|\";print@a'\`\"&lt;enter&gt;" "show only messages matching a notmuch pattern"
-macro index A "&lt;limit&gt;all\n" "show all messages (undo limit)"
+macro index Cf "&lt;enter-command&gt;unset wait_key&lt;enter&gt;&lt;shell-escape&gt;read -p 'notmuch query: ' x; echo $x &gt;~/.cache/mutt_terms&lt;enter&gt;&lt;limit&gt;~i "`notmuch search --output=messages $(cat ~/.cache/mutt_terms) | head -n 600 | perl -le '@a=&lt;&gt;;chomp@a;s/^id:// for@a;$,="|";print@a'`"&lt;enter&gt;" "show only messages matching a notmuch pattern"
+macro index A "&lt;limit&gt;all
+" "show all messages (undo limit)"
 
 # Default index colors:
 color index yellow default '.*'
