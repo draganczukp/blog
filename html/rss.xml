@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+ <channel>
+	 <atom:link href="https://blog.draganczuk.me/rss.xml" rel="self" type="application/rss+xml" />
+	 <title>Bloatless blog</title>
+  <link>https://blog.draganczuk.me</link>
+  <description>A blog where I sometimes post stuff</description>
+<item><title>About this blog</title><link>https://blog.draganczuk.me/posts/About-this-blog.html</link><guid>https://blog.draganczuk.me/posts/About-this-blog.html</guid><description>About this blog</description></item>
+<item><title>Get comfortable in (neo)mutt</title><link>https://blog.draganczuk.me/posts/Get-comfortable-in-(neo)mutt.html</link><guid>https://blog.draganczuk.me/posts/Get-comfortable-in-(neo)mutt.html</guid><description>Get comfortable in (neo)mutt</description></item>
+<item><title>How I make this blog</title><link>https://blog.draganczuk.me/posts/How-I-make-this-blog.html</link><guid>https://blog.draganczuk.me/posts/How-I-make-this-blog.html</guid><description>How I make this blog</description></item>
+<item><title>Migrating from AutoCommands to ftplugins</title><link>https://blog.draganczuk.me/posts/Migrating-from-AutoCommands-to-ftplugins.html</link><guid>https://blog.draganczuk.me/posts/Migrating-from-AutoCommands-to-ftplugins.html</guid><description>Migrating from AutoCommands to ftplugins</description></item>
+<item><title>Selfhosting a cloud. Part 0: Basic setup</title><link>https://blog.draganczuk.me/posts/Selfhosting-a-cloud.-Part-0:-Basic-setup.html</link><guid>https://blog.draganczuk.me/posts/Selfhosting-a-cloud.-Part-0:-Basic-setup.html</guid><description>Selfhosting a cloud. Part 0: Basic setup</description></item>
+
+</channel>
+</rss>
