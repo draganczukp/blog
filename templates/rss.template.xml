@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+ <channel>
+	 <atom:link href="https://blog.draganczuk.me/rss.xml" rel="self" type="application/rss+xml" />
+	 <title>Bloatless blog</title>
+  <link>https://blog.draganczuk.me</link>
+  <description>A blog where I sometimes post stuff</description>
+	  <!-- LIST -->
+</channel>
+</rss>

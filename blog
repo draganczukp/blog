@@ -39,23 +39,52 @@ edit() {
 render-post() {
 	echo "Started rendering $1"
 	template=templates/post.template.html
-	echo "Template: $template"
-	content=$(cat published/$1.html)
+	# Replace all \ with \\. Otherwise awk gets confused when post includes an \
+	content=$(sed < published/$1.html 's/\\/\\\\/g')
 
 	awk < metadata/$1 -F'=' '/title/{print $2}' | read title
-	echo "Title: $title"
 
-	# echo awk -v title=$title -v content=$content < $template '/<!-- TITLE -->/{print $title} /<!-- POST -->/{print $content} {print}'
 	awk -v title=$title -v content=$content < $template '/<-- TITLE -->/{print title} /<-- POST -->/{print content} !/<--/{print}' > html/posts/$1.html
 	echo "Done rendering $1"
 }
 
 render-list() {
+	echo "Started rendering post list"
+	template=templates/list.template.html
 
+	local list=""
+
+	for file in published/*; do
+		basename $file .html | read filename
+		awk -F'=' -v file=$filename \
+			'/title/{print "<li><a href=\"/posts/"file".html\">"$2"</a></li>"}' \
+			metadata/$filename | read entry
+		list="$list$entry\n"
+	done
+
+	awk -v list=$list < $template '/<!-- POSTS -->/{print list} !/<!--/{print}' > html/list.html
+
+	echo "Done rendering post list"
 }
 
 render-rss() {
+	echo "Started rendering RSS"
+	template=templates/rss.template.xml
 
+	local list=""
+
+	for file in published/*; do
+		basename $file .html | read filename
+		link="https://blog.draganczuk.me/posts/$filename.html"
+		awk -F'=' -v link=$link \
+			'/title/{print "<item><title>"$2"</title><link>"link"</link><guid>"link"</guid><description>"$2"</description></item>"}' \
+			metadata/$filename | read entry
+		list="$list$entry\n"
+	done
+
+	awk -v list=$list < $template '/<!-- LIST -->/{print list} !/<!--/{print}' > html/rss.xml
+
+	echo "Done rendering RSS"
 }
 
 render() {
