@@ -1,3 +1,12 @@
+<h1>Selfhosting a cloud</h1>
+<ol start=0>
+		<li><a href="/posts/Selfhosting-a-cloud.-Part-0:-Basic-setup.html">Basic setup</a></li>
+		<li>Reverse Proxy with Traefik v2 (this post)</li>
+		<li>Secure your services with HTTPS</li>
+		<li>Nextcloud - everything you need and more</li>
+		<li>Some nice services you might want</li>
+		<li>Use keycloak for user management and SSO</li>
+</ol>
 <h2>Disclaimer</h2>
 <p>Due to how disorganised I am, there will be a lot of tangents and (more or less) off-topic paragraphs.</p>
 <p class="offtopic">
@@ -114,12 +123,13 @@ networks:
 		proxy:
 				external: true
 </code></pre>
+This block should have the same indentation level as "services" and "version".
 </p>
 <h3>Traefik.yml config file</h3>
 <p>
 Although we can provide all this configuration in docker-compose.yml, it's recommended to put it in separate file. This file can be in either YAML or TOML format.
 </p>
-<p class="offtopic">I personally don't like TOML, which looks like a needlessly complicated version of old INI format.
+<p class="offtopic">I personally don't like TOML, which looks like a needlessly complicated version of the old MS-INI format.
 </p>
 <p>
 Here's a basic traefik.yml file configured for usage with docker:
@@ -132,6 +142,7 @@ entrypoints:
 				address: ":80"
 		https:
 				address: ":443"
+# You'll often find these entrypoints called "web" and "web-secure"
 
 # Where will other information be available
 providers:
@@ -157,7 +168,7 @@ That's about everything you need for a very basic installation of Traefik. Now l
 </p>
 <h2>Testing</h2>
 <p>
-Modify the docker-compose for whoami service. Remove the "ports" section and add the exact same "networks:" sections like we did above. Remember to add both service networks and global networks.
+Modify the docker-compose for whoami service. Remove the "ports" section and add the exact same "networks:" sections like we did above. Remember to add both service "networks" and global "networks".
 </p>
 <p>
 Now we need to add traefik configuration to whoami container. We do it by adding "labels" to the container. Add following lines to whoami service definition:
@@ -175,6 +186,17 @@ labels:
 		# but traefik can route to it
 		- traefik.http.services.whoami.loadbalancer.server.port: 80
 </code></pre>
-Now you can <code>docker-compose up -d</code> both whoami and traefik. When you navigate to http://example.com you should see the same whoami information as before
+Now you can <code>docker-compose up -d</code> both whoami and traefik. When you navigate to http://example.com you should see the same whoami information as before.
 </p>
-<++>
+<p>
+You should probably save the "label" section (without the comments). You'll be adding it to multiple containers to get traefik to recognise them.
+</p>
+<h1>That's it</h1>
+<p>
+Right now you should have the exact same whoami functionality on your server as you did before. The difference is that you have a whole lot of complexity that you might think is unnecessary. You'll see why it's useful later, once we start adding services.
+</p>
+<p>
+Also, you will not need the whoami service after the next post. It's great for testing, but you probably want something more useful on your server, like a portfolio website or a blog.
+</p>
+In the next post I'll explain how to set up HTTPS with SSL certificates from Let's Encrypt. That should be a short post, so it shouldn't take as long to write as this post.
+
