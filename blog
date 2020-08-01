@@ -2,6 +2,11 @@
 
 new-post() {
 	read "?Title: " title
+	if [[ "$title" = "" ]]; then
+		echo "Empty title"
+		exit
+	fi
+
 	escaped=$(sed 's/ /-/g' <<< $title)
 	postfile="drafts/$escaped.html"
 
@@ -31,8 +36,8 @@ edit() {
 
 	read "?Is this post ready for rendering? (y/N): " ans
 
-	if [[ ans == [yY] ]]; then
-		ln -sf drafts/$postfile published/$postfile
+	if [[ $ans == [yY] ]]; then
+		ln -sf $PWD/drafts/$postfile published/$postfile
 	fi
 }
 
@@ -54,7 +59,7 @@ render-list() {
 
 	local list=""
 
-	for file in published/*; do
+	for file in $(sorted-file-list published/); do
 		basename $file .html | read filename
 		awk -F'=' -v file=$filename \
 			'/title/{print "<li><a href=\"/posts/"file".html\">"$2"</a></li>"}' \
@@ -73,7 +78,7 @@ render-rss() {
 
 	local list=""
 
-	for file in published/*; do
+	for file in $(sorted-file-list published/); do
 		basename $file .html | read filename
 		link="https://blog.draganczuk.me/posts/$filename.html"
 		awk -F'=' -v link=$link \
@@ -88,7 +93,7 @@ render-rss() {
 }
 
 render() {
-	for post in published/*.html; do
+	for post in $(sorted-file-list published/); do
 		render-post $(basename $post .html)
 	done
 
@@ -97,15 +102,29 @@ render() {
 
 }
 
-echo "New\nEdit\nRender" \
-	| fzf \
-	| read choice
+sorted-file-list(){
+	/bin/ls --time=atime $1
+}
+
+debug(){
+	tee -a /tmp/blog.debug
+}
+
+if [[ "$1" == "" ]]; then
+	echo "New\nEdit\nRender" \
+		| fzf \
+		| tr '[:upper:]' '[:lower:]' \
+		| cut -c 1 \
+		| read choice
+else
+	choice=$1
+fi
 
 case $choice in
-	New)
+	n)
 		new-post;;
-	Edit)
+	e)
 		update;;
-	Render)
+	r)
 		render;;
 esac
