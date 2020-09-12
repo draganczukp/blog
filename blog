@@ -15,7 +15,7 @@ new-post() {
 		exit
 	fi
 
-	cat << EOF > metadata/$title
+	cat << EOF > metadata/$escaped
 title=$title
 EOF
 
