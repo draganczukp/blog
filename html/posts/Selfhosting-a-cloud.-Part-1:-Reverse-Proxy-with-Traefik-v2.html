@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>
+Selfhosting a cloud. Part 1: Reverse Proxy
+		</title>
+		<link rel="stylesheet" href="/dist/css/style.css" type="text/css" media="all">
+	</head>
+	<body>
+		<h2>
+Selfhosting a cloud. Part 1: Reverse Proxy
+		</h2>
+		<article>
+<h1>Selfhosting a cloud</h1>
+<ol start=0>
+    <li><a href="/posts/Selfhosting-a-cloud.-Part-0:-Basic-setup.html">Basic setup</a></li>
+    <li>Reverse Proxy with Traefik v2 (this post)</li>
+    <li>Secure your services with HTTPS</li>
+    <li>Nextcloud - everything you need and more</li>
+    <li>Some nice services you might want</li>
+    <li>Use keycloak for user management and SSO</li>
+</ol>
+<h2>Disclaimer</h2>
+<p>Due to how disorganised I am, there will be a lot of tangents and (more or less) off-topic paragraphs.</p>
+<p class="offtopic">
+Any paragraph that looks like this is one of those paragraphs. You can ignore them and information on this page will still make sense.
+</p>
+<p>
+I will sometimes use these paragraphs to explain something in more details.
+</p>
+<h1>This post assumes you read the <a href="/posts/Selfhosting-a-cloud.-Part-0:-Basic-setup.html">previous post</a></h1>
+<h1><a href="#skip">If you want to skip my rambling and go straight to installing and configuring Traefik click here</a> </h1>
+
+<h1>What is a reverse proxy? Do I need it?</h1>
+<p>
+From <a href="https://en.wikipedia.org/wiki/Reverse_proxy">Wikipedia</a>:
+<blockquote>
+In computer networks, a reverse proxy is a type of proxy server that retrieves resources on behalf of a client from one or more servers. These resources are then returned...
+</blockquote>
+</p>
+<p>
+This doesn't tell you much, does it. Let me try illustrate it a bit better.
+</p>
+<p>
+Let's assume that you want to host multiple applications, like a file server, search engine, blog, password manager or anything else. They all allow you to access them with your browser via HTTP(S). HTTP uses TCP port 80 (port 443 for HTTPS).
+</p>
+<p class="offtopic">
+HTTPS adds an extra layer of security by encrypting all HTTP traffic using SSL certificates. I'm not an expert on encryption or network security, so I won't be explaining how that works. You can find more information about that on Youtube
+</p>
+<p class="offtopic">
+A TCP (or UDP) port is an identificator for a protocol. Ports from 0 to 1023 are reserved for specific protocols. DNS uses 53, SSH uses 22 etc. Any application can use any port, as long as it's not already in use.
+</p>
+<p>A port can only be used by one application at a time. However if you have a bunch of web applications they will all want to use port 80. This obviously wouldn't work.
+</p>
+<p>
+One way to "fix" this is to assign a different port per application. Since we're using docker, it's really easy to do that by just changing the <code>ports:</code> section in docker-compose.yml.
+</p>
+<p>
+The obvious drawback here is that in order to reach these applications, you have to specify the port along with URL. So instead of opening app.example.com in your browser, you have to open example.com:1234
+</p>
+<h2>Reverse Proxy to the rescue</h2>
+<p>
+A reverse proxy such as Traefik or HAproxy (and some web servers like Nginx and Apache) sit between you and your apps. It's the only application that uses port 80 on your server. It listens to all HTTP requests and redirects them to your apps according to rules you specify. For example: every HTTP request where the domain name is <code>blog.draganczuk.me</code> is redirected to a docker container with my blog.
+</p>
+
+<h1>Using Traefik v2 as a proxy</h1>
+<h2>What is Traefik</h2>
+<p>
+Traefik is a piece of software written in Go specifically to act as a reverse proxy. It has some nice features, like automatically acquiring SSL certificates from Let's Encrypt, <i>very</i> advanced routing rules, and it can react to changes in docker containers on the fly (mostly)
+</p>
+<h2>Why not Nginx/Apache/HAProxy/Caddy/anything else?</h2>
+<p>
+Until very recently I was using Nginx as my reverse proxy. It was working great, especially since I was using <a href="https://hub.docker.com/r/linuxserver/letsencrypt/">linuxserver/letsencrypt</a> as my reverse proxy container. The problem was when I wanted to secure some of my apps to require logging in using Keycloak as a backend (I'll cover that in a later post).
+</p>
+<p>Turns out that in order to do it you either need a paid version of Nginx, or some kind of custom distribution with extra lua support. Both of these options required quite a lot of work to integrate with the container I was using. After some googling I found that Traefik can be integrated relatively easily with any OpenID Connect provider, like Keycloak.
+</p>
+<p>
+I was also getting annoyed with having to restart my whole proxy container every time I wanted to add, remove or change an application.
+</p>
+
+<h1 id="skip">Installing and configuring Traefik</h1>
+<h2>Create docker-compose.yml</h2>
+<p>
+Since we're using docker and docker-compose for everything, our proxy will also be defined as a docker-compose stack. Here's a starting docker-compose.yml file:
+<pre><code>
+version: "3"
+services:
+    traefik:
+        image: traefik
+        container_name: traefik
+        restart: unless-stopped
+        ports:
+            - 80:80
+            - 443:443
+</code></pre>
+Create a new folder (like proxy) in your main servers folder and paste that to docker-compose.yml. Right now everything in this file was explained earlier.
+</p>
+<h2>Adding some basic configuration</h2>
+<h3>Docker volumes</h3>
+<p>
+We need to provide some files to Traefik. These files are:
+<ul>
+    <li><code>/var/run/docker.sock</code> - Docker socket, so that Traefik knows about other containers</li>
+    <li>./traefik.yml - main "static" configuration file</li>
+    <li>./data/extra-conf - additional configuration files</li>
+</ul>
+We do that by adding the following section to service definition in docker-compose.yml:
+<pre><code>
+volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./traefik.yml:/etc/traefik/traefik.yml
+    - ./data/extra-conf:/extra-conf
+</code></pre>
+The syntax is pretty simple. It's local file : container file. Prepend "./" to local file to use relative path.
+</p>
+<h3>Proxy network for containers</h3>
+<p>
+Since we want our applications to be able to talk to each other, they need to be on the same network. By default docker-compose creates a new network for every docker-compose.yml file. This means that if we follow best practices and don't put everything in a single file, we won't be able to proxy anything.
+</p>
+<p>
+To fix this, we need to create a new network which will connect all the services:
+<pre><code>
+docker network create proxy
+</code></pre>
+Now we just need to tell docker-compose to connect traefik to that network by adding this section to service definition:
+<pre><code>
+networks:
+    - proxy
+</code></pre>
+As you can see from the syntax, we can specify multiple networks, though we won't do it now.
+</p>
+<p>
+The last thing to do in docker-compose right now is to tell docker-compose that it's allowed to use that network. Add this section to the end of file, but make sure that "networks:" is <b>NOT</b> indented at all:
+<pre><code>
+networks:
+    proxy:
+        external: true
+</code></pre>
+This block should have the same indentation level as "services" and "version".
+</p>
+<h3>Traefik.yml config file</h3>
+<p>
+Although we can provide all this configuration in docker-compose.yml, it's recommended to put it in separate file. This file can be in either YAML or TOML format.
+</p>
+<p class="offtopic">I personally don't like TOML, which looks like a needlessly complicated version of the old MS-INI format.
+</p>
+<p>
+Here's a basic traefik.yml file configured for usage with docker:
+<pre><code>
+
+# What ports should we listen on
+entrypoints:
+    # You can replace "http" here with "web" or any other name you want
+    http:
+        address: ":80"
+    https:
+        address: ":443"
+# You'll often find these entrypoints called "web" and "web-secure"
+
+# Where will other information be available
+providers:
+    # Docker containers can set information about themselves
+    # This allows traefik to read that information
+    docker:
+        # Docker socket
+        endpoint: "unix:///var/run/docker.sock"
+        # We don't want *every* service (like databases) to be exposed
+        exposedByDefault: false
+        # Access containers with this network
+        network: proxy
+    # Extra configuration can be stored in this folder
+    file:
+        directory: /extra-conf
+        # watch for changes and reload configuration as needed
+        watch: true
+</code></pre>
+I've put some comments to make it easier to understand.
+</p>
+<p>
+That's about everything you need for a very basic installation of Traefik. Now let's test it with our whoami container from last time.
+</p>
+<h2>Testing</h2>
+<p>
+Modify the docker-compose for whoami service. Remove the "ports" section and add the exact same "networks:" sections like we did above. Remember to add both service "networks" and global "networks".
+</p>
+<p>
+Now we need to add traefik configuration to whoami container. We do it by adding "labels" to the container. Add following lines to whoami service definition:
+<pre><code>
+labels:
+    # Enable traefik for this container
+    - traefik.enable: true
+    # We want to route traffic through entrypoint "http" (defined in traefik.yml)
+    - traefik.http.routers.whoami.entrypoints: http
+    # What URL do we want this app to be available at?
+    # Replace with your domain
+    - traefik.http.routers.whoami.rule: Host(`example.com`)
+    # What port is the container normally using?
+    # Whoami listens on port 80. It's not exposed outside,
+    # but traefik can route to it
+    - traefik.http.services.whoami.loadbalancer.server.port: 80
+</code></pre>
+Now you can <code>docker-compose up -d</code> both whoami and traefik. When you navigate to http://example.com you should see the same whoami information as before.
+</p>
+<p>
+You should probably save the "label" section (without the comments). You'll be adding it to multiple containers to get traefik to recognise them.
+</p>
+<h1>That's it</h1>
+<p>
+Right now you should have the exact same whoami functionality on your server as you did before. The difference is that you have a whole lot of complexity that you might think is unnecessary. You'll see why it's useful later, once we start adding services.
+</p>
+<p>
+Also, you will not need the whoami service after the next post. It's great for testing, but you probably want something more useful on your server, like a portfolio website or a blog.
+</p>
+In the next post I'll explain how to set up HTTPS with SSL certificates from Let's Encrypt. That should be a short post, so it shouldn't take as long to write as this post.
+		</article>
+		<footer>
+			<a href="/contact.html">Contact me</a> | <a href="/list.html">List of posts</a> | <a href="/all.html">All posts</a>
+		</footer>
+	</body>
+</html>
