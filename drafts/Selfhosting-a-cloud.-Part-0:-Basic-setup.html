@@ -96,9 +96,9 @@ You might see a lot of confusing terms, like record or TTL. Here's a (very) brie
 		<li>Record - Controls where a domain (or subdomain) points to. Can be an IP address or something else depending on this record's type</li>
 		<li>Record type - There is quite a lot of record types. They each have a different purpose. I'll list some of them below</li>
 		<li>TTL - When you want to know where a record points to, your computer will go out and find this informarion in a DNS server. However, since you will most likely need this information multiple times your computer will cache (remember) it for some time. TTL controls how long it should remember this record (in seconds)</li>
-		<li>"A" record - Maps a domain (example.com) or subdomain (app.example.com) to IPv4 address (192.0.2.10). Multiple "A" records can point to the same IP address. This is what we'll be using the most</li>
-		<li>"AAA" record - <s>screams louder than an "A" record</s> Maps a domain or subdomain to IPv6 address (2001:BD8::12AB)</li>
-		<li>"CNAME" record - point a domain/subdomain to another domain/subdomain</li>
+		<li>"A" record - Maps a domain (example.com) or subdomain (app.example.com) to IPv4 address (192.0.2.10). Multiple "A" records can point to the same IP address.</li>
+		<li>"AAAA" record - <s>screams louder than an "A" record</s> Maps a domain or subdomain to IPv6 address (2001:BD8::12AB)</li>
+		<li>"CNAME" record - point a domain/subdomain to another domain/subdomain. This is what we'll be using the most</li>
 		<li>"MX" - used when hosting E-Mail</li>
 		<li>"TXT" - Extra text data. Used for everything from ownership verification (Google search console) to controlling how certain apps can interact with each other</li>
 </ul>
@@ -108,7 +108,7 @@ There is some more records, but they're not relevant to us right now.
 If you want to learn more about DNS, Computerphile on Youtube has some videos that explain it better than I ever would
 </p>
 <p>
-Create a new "A" record. As host either leave blank or insert "@", depending on your provider. Set Target/Value/IP Address (depending on provider) to your server. Leave TTL as whatever is default, or set it to 1800 (half an hour). If your VPS supports IPv6 then repeat this step but for an "AAA" record.
+Create a new "A" record. As host either leave blank or insert "@", depending on your provider. Set Target/Value/IP Address (depending on provider) to your server. Leave TTL as whatever is default, or set it to 1800 (half an hour). If your VPS supports IPv6 then repeat this step but for an "AAAA" record.
 </p>
 <h1>Configuring the server</h1>
 <p>
